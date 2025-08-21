@@ -1,0 +1,11 @@
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+
+  security:
+    user:
+      name: admin
+      password: admin
+
+server:
+  port: 8080
