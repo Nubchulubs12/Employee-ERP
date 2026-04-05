@@ -1,7 +1,22 @@
-import { Link } from 'react-router-dom';
+import { Link ,useLocation,useNavigation} from 'react-router-dom';
 import '../App.css';
+import {useEffect, useState} from "react";
 
 function Navbar() {
+    const navigate = useNavigation;
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const location = useLocation();
+useEffect(() => {
+    const user = localStorage.getItem("user");
+    setIsLoggedIn(!!user);
+
+    });
+    function handleLogout() {
+        localStorage.removeItem("user");
+        setIsLoggedIn(false);
+        window.location.href="/login";
+        };
+
   return (
     <nav className="navbar">
       <div className="nav-left">
@@ -11,6 +26,7 @@ function Navbar() {
       <div className="nav-right">
         <Link to="/login" className="nav-link">Login</Link>
         <Link to="/register" className="nav-link">Register</Link>
+        {isLoggedIn && <button onClick={handleLogout}>Logout</button>}
       </div>
     </nav>
   );

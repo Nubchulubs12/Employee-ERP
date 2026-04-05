@@ -18,6 +18,14 @@ public class CompanyController {
     public CompanyController(CompanyService companyService) {
         this.companyService = companyService;
     }
+    @GetMapping
+    public ResponseEntity<List<CompanyDto>> getAllCompanies() {
+        return ResponseEntity.ok(companyService.getAllCompanies());
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<CompanyDto> getCompanyById(@PathVariable Long id) {
+        return ResponseEntity.ok(companyService.getCompanyById(id));
+    }
 
     @PostMapping("/register")
    public ResponseEntity<CompanyDto> registerCompany(

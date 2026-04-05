@@ -1,5 +1,6 @@
 package com.example.erp.services;
 
+import com.example.erp.Dto.ChangePasswordRequest;
 import com.example.erp.Dto.CreateEmployeeRequest;
 import com.example.erp.Dto.EmployeeDto;
 import com.example.erp.Dto.UpdateEmployeeRequest;
@@ -61,14 +62,12 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
 
-        Company company = companyService.getCompanyEntityById(request.getCompanyId());
-
         employee.setFirstName(request.getFirstName());
         employee.setLastName(request.getLastName());
+
         employee.setEmail(request.getEmail());
         employee.setJobTitle(request.getJobTitle());
         employee.setHireDate(request.getHireDate());
-        employee.setCompany(company);
 
         return toDto(employeeRepository.save(employee));
     }
@@ -79,6 +78,28 @@ public class EmployeeService {
         }
 
         employeeRepository.deleteById(id);
+    }
+    public List<EmployeeDto> getEmployeeByCompanyId(Long companyId) {
+        return employeeRepository.findByCompanyId(companyId)
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    public void changePassword(Long id, ChangePasswordRequest request) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), employee.getPwHash())) {
+            throw new RuntimeException("Current password is incorrect.");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("New passwords do not match.");
+        }
+
+        employee.setPwHash(passwordEncoder.encode(request.getNewPassword()));
+        employeeRepository.save(employee);
     }
 
     private EmployeeDto toDto(Employee employee) {

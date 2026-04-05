@@ -1,10 +1,14 @@
 package com.example.erp.controller;
+import com.example.erp.Dto.ChangePasswordRequest;
 import com.example.erp.Dto.CreateEmployeeRequest;
 import com.example.erp.Dto.EmployeeDto;
+import com.example.erp.Dto.UpdateEmployeeRequest;
 import com.example.erp.services.EmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/employees")
@@ -17,11 +21,24 @@ public class EmployeeController {
         this.employeeService = employeeService;
     }
 
+    @GetMapping("/company/{companyId}")
+    public ResponseEntity<List<EmployeeDto>> getEmployeeByCompanyId(@PathVariable Long companyId) {
+        return ResponseEntity.ok(employeeService.getEmployeeByCompanyId(companyId));
+    }
+
     @PostMapping
     public ResponseEntity<EmployeeDto> createEmployee(@Valid @RequestBody CreateEmployeeRequest request) {
-        EmployeeDto dto = employeeService.createEmployee(request);
-
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(employeeService.createEmployee(request));
+    }
+    @PutMapping("/{id}")
+    public ResponseEntity<EmployeeDto> updateEmployee(@PathVariable Long id, @RequestBody UpdateEmployeeRequest request) {
+        EmployeeDto updateEmployee = employeeService.updateEmployee(id, request);
+        return ResponseEntity.ok(updateEmployee);
+    }
+    @PutMapping("/{id}/change-password")
+    public ResponseEntity<String> changePassword(@PathVariable Long id, @RequestBody ChangePasswordRequest request) {
+        employeeService.changePassword(id, request);
+        return ResponseEntity.ok("Password update successfully");
     }
 
     @DeleteMapping("/{id}")

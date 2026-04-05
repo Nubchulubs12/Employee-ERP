@@ -13,6 +13,8 @@ public class UpdateEmployeeRequest {
 
     @NotBlank
     private String lastName;
+    @NotBlank
+    private String pwHash;
 
     @NotBlank
     @Email
@@ -70,5 +72,13 @@ public class UpdateEmployeeRequest {
 
     public void setCompanyId(Long companyId) {
         this.companyId = companyId;
+    }
+
+    public String getPwHash() {
+        return pwHash;
+    }
+
+    public void setPwHash(String pwHash) {
+        this.pwHash = pwHash;
     }
 }

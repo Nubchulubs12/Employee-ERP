@@ -1,13 +1,22 @@
 const BASE_URL = 'http://localhost:8080/api/companies';
 
-export async function fetchCompanies() {
-  const response = await fetch(BASE_URL);
+export async function fetchCompanyById(id) {
+  const response = await fetch(`${BASE_URL}/${id}`);
 
-  if (!response.ok) {
-    throw new Error('Failed to load companies');
+  const text = await response.text();
+  let data;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
   }
 
-  return response.json();
+  if (!response.ok) {
+    throw new Error(data?.message || data || 'Failed to load company');
+  }
+
+  return data;
 }
 
 export async function registerCompany(company) {
@@ -29,7 +38,7 @@ export async function registerCompany(company) {
   }
 
   if (!response.ok) {
-    throw new Error(data || 'Registration failed');
+    throw new Error(data?.message || data || 'Registration failed');
   }
 
   return data;
