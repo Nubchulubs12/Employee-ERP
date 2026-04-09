@@ -28,7 +28,7 @@ async function handleSubmit(e) {
 
   try {
       const createdCompany = await registerCompany(formData);
-      localStorage.setItem("company", JSON.stringify(createdCompany));
+      localStorage.setItem("user", JSON.stringify(createdCompany));
       setmessage("Registered successfully!")
     navigate(`/companies/${createdCompany.id}`);
   } catch (err) {

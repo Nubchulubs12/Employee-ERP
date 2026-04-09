@@ -118,14 +118,58 @@ function EmployeesPage() {
   }
 
   return (
-    <div className="employee-dashboard">
+    <div className="company-page">
+        <div className="company-left">
       <h1>Welcome, {employee.name}</h1>
 
       <p><strong>Email:</strong> {employee.email}</p>
       <p><strong>Company:</strong> {employee.companyName || "N/A"}</p>
 
       <hr />
+       <h2>Change Password</h2>
 
+            {error && <p className="error-message">{error}</p>}
+            {message && <p className="success-message">{message}</p>}
+
+            <form onSubmit={handleChangePassword} className="register-form">
+              <label>
+                Current Password
+                <input
+                  type="password"
+                  name="currentPassword"
+                  value={passwordForm.currentPassword}
+                  onChange={handlePasswordInputChange}
+                  required
+                />
+              </label>
+
+              <label>
+                New Password
+                <input
+                  type="password"
+                  name="newPassword"
+                  value={passwordForm.newPassword}
+                  onChange={handlePasswordInputChange}
+                  required
+                />
+              </label>
+
+              <label>
+                Confirm New Password
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={passwordForm.confirmPassword}
+                  onChange={handlePasswordInputChange}
+                  required
+                />
+              </label>
+
+              <button type="submit">Update Password</button>
+            </form>
+      </div>
+
+<div className="company-right">
       <h2>Time Clock</h2>
 
       <div className="clock-actions">
@@ -147,47 +191,8 @@ function EmployeesPage() {
 
       <hr />
 
-      <h2>Change Password</h2>
 
-      {error && <p className="error-message">{error}</p>}
-      {message && <p className="success-message">{message}</p>}
-
-      <form onSubmit={handleChangePassword} className="register-form">
-        <label>
-          Current Password
-          <input
-            type="password"
-            name="currentPassword"
-            value={passwordForm.currentPassword}
-            onChange={handlePasswordInputChange}
-            required
-          />
-        </label>
-
-        <label>
-          New Password
-          <input
-            type="password"
-            name="newPassword"
-            value={passwordForm.newPassword}
-            onChange={handlePasswordInputChange}
-            required
-          />
-        </label>
-
-        <label>
-          Confirm New Password
-          <input
-            type="password"
-            name="confirmPassword"
-            value={passwordForm.confirmPassword}
-            onChange={handlePasswordInputChange}
-            required
-          />
-        </label>
-
-        <button type="submit">Update Password</button>
-      </form>
+      </div>
     </div>
   );
 }
