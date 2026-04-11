@@ -1,13 +1,10 @@
 spring:
-#  security:
-#    user:
-#      name: admin
-#      password: admin123
+
   datasource:
-    url: jdbc:sqlserver://localhost;instanceName=SQLEXPRESS;databaseName=EmployeeErp;encrypt=true;trustServerCertificate=true
-    username: erp_user
-    password: StrongP@ssw0rd!
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      url: ${SPRING_DATASOURCE_URL}
+      username: ${SPRING_DATASOURCE_USERNAME}
+      password: ${SPRING_DATASOURCE_PASSWORD}
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
 
   jpa:
