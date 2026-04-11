@@ -1,15 +1,15 @@
 spring:
-#  security:
-#    user:
-#      name: admin
-#      password: admin123
+
   datasource:
-    url: jdbc:sqlserver://localhost;instanceName=SQLEXPRESS;databaseName=EmployeeErp;encrypt=true;trustServerCertificate=true
-    username: erp_user
-    password: StrongP@ssw0rd!
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      url: jdbc:sqlserver://employeeerp.database.windows.net:1433;database=EmployeeErp;encrypt=true;trustServerCertificate=false;loginTimeout=30;
+      username: CloudSAaa8282d6
+      password: Bubbleman12
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
-
+#      jpa:
+#        hibernate:
+#          ddl-auto: create
+#        show-sql: true
   jpa:
     hibernate:
       ddl-auto: update
@@ -18,6 +18,10 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
     show-sql: true
+
+
+#      server:
+#      port: ${PORT:8080}
 
 
 
