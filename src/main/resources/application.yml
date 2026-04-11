@@ -6,18 +6,21 @@ spring:
       password: ${SPRING_DATASOURCE_PASSWORD}
       driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
+      jpa:
+        hibernate:
+          ddl-auto: update
+        show-sql: true
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#    database-platform: org.hibernate.dialect.SQLServerDialect
+#    properties:
+#      hibernate:
+#        dialect: org.hibernate.dialect.SQLServerDialect
+#    show-sql: true
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-    database-platform: org.hibernate.dialect.SQLServerDialect
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.SQLServerDialect
-    show-sql: true
 
-
-    server:
+      server:
       port: ${PORT:8080}
 
 
