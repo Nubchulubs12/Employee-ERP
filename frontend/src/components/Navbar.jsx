@@ -10,7 +10,7 @@ useEffect(() => {
     const user = localStorage.getItem("user");
     setIsLoggedIn(!!user);
 
-    }, [location]);
+    });
     function handleLogout() {
         localStorage.removeItem("user");
         setIsLoggedIn(false);
