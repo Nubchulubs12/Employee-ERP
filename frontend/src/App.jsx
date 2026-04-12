@@ -39,27 +39,4 @@ function App() {
 
 export default App
 
-//     <div className="container">
-//       <h1>ERP Portal</h1>
-//
-//       <div className="nav">
-//         <button
-//           className={page === 'employees' ? 'active' : ''}
-//           onClick={() => setPage('employees')}
-//         >
-//           Employees
-//         </button>
-//
-//         <button
-//           className={page === 'companies' ? 'active' : ''}
-//           onClick={() => setPage('companies')}
-//         >
-//           Companies
-//         </button>
-//       </div>
-//
-//       {page === 'employees' ? <EmployeesPage /> : <CompaniesPage />}
-//     </div>
-//   );
-// }
 
