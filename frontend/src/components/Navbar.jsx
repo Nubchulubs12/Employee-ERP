@@ -1,9 +1,9 @@
-import { Link ,useLocation,useNavigation} from 'react-router-dom';
+import { Link ,useLocation ,useNavigate} from 'react-router-dom';
 import '../App.css';
 import {useEffect, useState} from "react";
 
 function Navbar() {
-    const navigate = useNavigation;
+    const navigate = useNavigate;
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const location = useLocation();
 useEffect(() => {
