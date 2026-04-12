@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8080/api/auth";
+const BASE_URL = "https://employee-erps.onrender.com/api/auth";
 
 export async function loginUser(credentials) {
 const response = await fetch(`${BASE_URL}/login`,{

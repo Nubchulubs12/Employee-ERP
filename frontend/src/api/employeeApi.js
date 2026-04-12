@@ -1,5 +1,5 @@
-const BASE_URL = 'http://localhost:8080/api/employees';
-const TIME_URL = 'http://localhost:8080/api/time/employees';
+const BASE_URL = 'https://employee-erps.onrender.com/api/employees';
+const TIME_URL = 'https://employee-erps.onrender.com/api/time/employees';
 
 export async function fetchEmployees(companyId) {
   const response = await fetch(`${BASE_URL}/company/${companyId}`);

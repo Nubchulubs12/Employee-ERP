@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:8080/api/companies';
+const BASE_URL = 'https://employee-erps.onrender.com/api/companies';
 
 export async function fetchCompanyById(id) {
   const response = await fetch(`${BASE_URL}/${id}`);
