@@ -14,7 +14,7 @@ useEffect(() => {
     function handleLogout() {
         localStorage.removeItem("user");
         setIsLoggedIn(false);
-        window.location.href="/login";
+       navigate("/login")
         };
 
   return (
