@@ -8,18 +8,13 @@ function Navbar() {
     const location = useLocation();
 useEffect(() => {
     const user = localStorage.getItem("user");
-    const username = localStorage.getItem("username");
-    const company = localStorage.getItem("company");
     setIsLoggedIn(!!user);
 
-    }, [location]);
+    });
     function handleLogout() {
         localStorage.removeItem("user");
-        localStorage.removeItem("user");
-                localStorage.removeItem("username");
-                localStorage.removeItem("company");
         setIsLoggedIn(false);
-       navigate("/login");
+       navigate("/login", {replace: true});
 
         };
 
