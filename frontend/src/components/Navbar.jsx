@@ -1,11 +1,11 @@
-import { Link ,useLocation ,useNavigate} from 'react-router-dom';
+import { Link ,useNavigate} from 'react-router-dom';
 import '../App.css';
 import {useEffect, useState} from "react";
 
 function Navbar() {
     const navigate = useNavigate;
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const location = useLocation();
+
 useEffect(() => {
     const user = localStorage.getItem("user");
     setIsLoggedIn(!!user);
