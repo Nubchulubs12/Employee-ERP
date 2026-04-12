@@ -15,7 +15,7 @@ useEffect(() => {
         localStorage.removeItem("user");
         setIsLoggedIn(false);
        navigate("/login");
-       window.location.href="/login";
+
         };
 
   return (
