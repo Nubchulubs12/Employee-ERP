@@ -14,7 +14,7 @@ useEffect(() => {
     function handleLogout() {
         localStorage.removeItem("user");
         setIsLoggedIn(false);
-       navigate("/login", {replace: true});
+       navigate("/login");
 
         };
 
