@@ -1,9 +1,9 @@
 spring:
 
   datasource:
-      url: ${DB_URL}
-      username: ${DB_USERNAME}
-      password: ${DB_PASSWORD}
+      url: ${DB_URL:jdbc:sqlserver://employeeerp.database.windows.net:1433;database=EmployeeErp;encrypt=true;trustServerCertificate=false;loginTimeout=30;}
+      username: ${DB_USERNAME:CloudSAaa8282d6}
+      password: ${DB_PASSWORD:Bubbleman12}
       driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
 #      jpa:

@@ -14,19 +14,18 @@ useEffect(() => {
     function handleLogout() {
         localStorage.removeItem("user");
         setIsLoggedIn(false);
-       navigate("/login");
+       navigate("/");
 
         };
 
   return (
     <nav className="navbar">
       <div className="nav-left">
-        <Link to="/" className="nav-logo">ERP Portal</Link>
+        <Link to="/" className="nav-logo">ESS Portal</Link>
       </div>
 
       <div className="nav-right">
-        <Link to="/login" className="nav-link">Login</Link>
-        <Link to="/register" className="nav-link">Register</Link>
+
         {isLoggedIn && <button onClick={handleLogout}>Logout</button>}
       </div>
     </nav>
