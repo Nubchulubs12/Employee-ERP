@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import TimeSheetGrid from "../components/TimeSheetGrid";
 import {
   changeEmployeePassword,
   clockIn,
@@ -116,7 +117,7 @@ function EmployeesPage() {
   if (!employee) {
     return <p>Loading employee info...</p>;
   }
-
+console.log(timeEntries);
   return (
     <div className="company-page">
         <div className="company-left">
@@ -181,14 +182,7 @@ function EmployeesPage() {
       </div>
 
       <h3>Recent Time Entries</h3>
-      <ul>
-        {timeEntries.map((entry) => (
-          <li key={entry.id}>
-            <strong>{entry.workDate}</strong> — In: {entry.clockInTime} — Out: {entry.clockOutTime || "Still clocked in"}
-          </li>
-        ))}
-      </ul>
-
+        <TimeSheetGrid timeEntries={timeEntries} />
       <hr />
 
 

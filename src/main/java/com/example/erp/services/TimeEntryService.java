@@ -7,7 +7,7 @@ import com.example.erp.models.Employee;
 import com.example.erp.models.TimeEntry;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,10 +34,13 @@ public class TimeEntryService {
             throw new RuntimeException("Employee is already clocked in.");
         }
 
+        ZoneId zone = ZoneId.of("America/Chicago");
+        LocalDateTime now = LocalDateTime.now(zone);
+
         TimeEntry entry = new TimeEntry();
         entry.setEmployee(employee);
-        entry.setWorkDate(LocalDate.now());
-        entry.setClockInTime(LocalDateTime.now());
+        entry.setWorkDate(now.toLocalDate());
+        entry.setClockInTime(now);
 
         return toDto(timeEntryRepository.save(entry));
     }
@@ -47,7 +50,10 @@ public class TimeEntryService {
                 .findFirstByEmployeeIdAndClockOutTimeIsNullOrderByClockInTimeDesc(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee is not currently clocked in."));
 
-        entry.setClockOutTime(LocalDateTime.now());
+        ZoneId zone = ZoneId.of("America/Chicago");
+        LocalDateTime now = LocalDateTime.now(zone);
+
+        entry.setClockOutTime(now);
 
         return toDto(timeEntryRepository.save(entry));
     }
