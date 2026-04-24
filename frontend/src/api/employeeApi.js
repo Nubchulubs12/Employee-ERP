@@ -1,5 +1,7 @@
-const BASE_URL = 'https://employee-erps.onrender.com/api/employees';
-const TIME_URL = 'https://employee-erps.onrender.com/api/time/employees';
+//const BASE_URL = 'https://employee-erps.onrender.com/api/employees';
+//const TIME_URL = 'https://employee-erps.onrender.com/api/time/employees';
+const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/employees`;
+const TIME_URL = `${import.meta.env.VITE_API_BASE_URL}/api/time/employees`;
 
 export async function fetchEmployees(companyId) {
   const response = await fetch(`${BASE_URL}/company/${companyId}`);

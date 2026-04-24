@@ -36,7 +36,9 @@ public class TimeEntryService {
 
         ZoneId zone = ZoneId.of("America/Chicago");
         LocalDateTime now = LocalDateTime.now(zone);
-
+        System.out.println("CLOCK IN DEBUG");
+        System.out.println("ZONE: " + zone);
+        System.out.println("NOW: " + now);
         TimeEntry entry = new TimeEntry();
         entry.setEmployee(employee);
         entry.setWorkDate(now.toLocalDate());

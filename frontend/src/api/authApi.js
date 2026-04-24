@@ -1,5 +1,5 @@
-const BASE_URL = "https://employee-erps.onrender.com/api/auth";
-
+//const BASE_URL = "https://employee-erps.onrender.com/api/auth";
+const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/auth`;
 export async function loginUser(credentials) {
 const response = await fetch(`${BASE_URL}/login`,{
     method: 'POST',

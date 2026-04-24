@@ -1,5 +1,5 @@
-const BASE_URL = 'https://employee-erps.onrender.com/api/companies';
-
+//const BASE_URL = 'https://employee-erps.onrender.com/api/companies';
+const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/companies`;
 export async function fetchCompanyById(id) {
   const response = await fetch(`${BASE_URL}/${id}`);
 
