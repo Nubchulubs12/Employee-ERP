@@ -4,7 +4,7 @@ import com.example.erp.Dto.TimeEntryDto;
 import com.example.erp.services.TimeEntryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.example.erp.Dto.UpdateTimeEntryRequest;
 import java.util.List;
 
 @RestController
@@ -26,6 +26,13 @@ public class TimeEntryController {
     @PostMapping("/employees/{employeeId}/clock-out")
     public ResponseEntity<TimeEntryDto> clockOut(@PathVariable Long employeeId) {
         return ResponseEntity.ok(timeEntryService.clockOut(employeeId));
+    }
+    @PutMapping("/entries/{entryId}")
+    public ResponseEntity<TimeEntryDto> updateTimeEntry(
+            @PathVariable Long entryId,
+            @RequestBody UpdateTimeEntryRequest request
+    ) {
+        return ResponseEntity.ok(timeEntryService.updateTimeEntry(entryId, request));
     }
 
     @GetMapping("/employees/{employeeId}")

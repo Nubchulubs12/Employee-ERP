@@ -6,7 +6,7 @@ import com.example.erp.data.TimeEntryRepository;
 import com.example.erp.models.Employee;
 import com.example.erp.models.TimeEntry;
 import org.springframework.stereotype.Service;
-
+import com.example.erp.Dto.UpdateTimeEntryRequest;
 import java.time.ZoneId;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -56,6 +56,25 @@ public class TimeEntryService {
         LocalDateTime now = LocalDateTime.now(zone);
 
         entry.setClockOutTime(now);
+
+        return toDto(timeEntryRepository.save(entry));
+    }
+    public TimeEntryDto updateTimeEntry(Long entryId, UpdateTimeEntryRequest request) {
+        TimeEntry entry = timeEntryRepository.findById(entryId)
+                .orElseThrow(() -> new RuntimeException("Time entry not found with id: " + entryId));
+
+        if (request.getClockInTime() == null) {
+            throw new RuntimeException("Clock in time is required.");
+        }
+
+        if (request.getClockOutTime() != null &&
+                request.getClockOutTime().isBefore(request.getClockInTime())) {
+            throw new RuntimeException("Clock out time cannot be before clock in time.");
+        }
+
+        entry.setClockInTime(request.getClockInTime());
+        entry.setClockOutTime(request.getClockOutTime());
+        entry.setWorkDate(request.getClockInTime().toLocalDate());
 
         return toDto(timeEntryRepository.save(entry));
     }

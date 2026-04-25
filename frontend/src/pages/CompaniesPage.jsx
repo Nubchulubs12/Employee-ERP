@@ -1,16 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useParams } from "react-router-dom";
 import { fetchCompanyById } from '../api/companyApi';
-import { fetchEmployees, createEmployee, deleteEmployee, updateEmployee} from '../api/employeeApi';
+import { fetchEmployees, createEmployee, deleteEmployee, updateEmployee, fetchTimeEntries, updateTimeEntry} from '../api/employeeApi';
 import {useNavigate} from "react-router-dom";
 
 function CompaniesPage() {
-    const navigate = useNavigate;
+    const navigate = useNavigate();
   const { id } = useParams();
   const [company, setCompany] = useState(null);
   const [employees, setEmployees] = useState([]);
   const [error, setError] = useState("");
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+  const [timeEntries, setTimeEntries] = useState([]);
+  const [editingTimeEntryId, setEditingTimeEntryId] = useState(null);
+  const [editingTimeEmployeeId, setEditingTimeEmployeeId] = useState(null);
+
+  const [timeForm, setTimeForm] = useState({
+    clockInTime: "",
+    clockOutTime: "",
+  });
   const [editForm, setEditForm] = useState({
     firstName: "",
     lastName: "",
@@ -140,7 +149,76 @@ function handleEditChange(e) {
       setError(err.message || "Failed to create employee");
     }
   }
+async function handleManageTime(employeeId) {
+  try {
+    setEditingTimeEmployeeId(employeeId);
+    setSelectedEmployeeId(employeeId);
+    setEditingTimeEntryId(null);
 
+    const data = await fetchTimeEntries(employeeId);
+    setTimeEntries(data);
+  } catch (err) {
+    setError(err.message || "Failed to load time entries");
+  }
+}
+ function handleCloseTimeManager() {
+   setEditingTimeEmployeeId(null);
+   setSelectedEmployeeId(null);
+   setEditingTimeEntryId(null);
+   setTimeEntries([]);
+ }
+
+function handleEditTimeClick(entry) {
+  setEditingTimeEntryId(entry.id);
+
+  setTimeForm({
+    clockInTime: entry.clockInTime ? entry.clockInTime.slice(0, 16) : "",
+    clockOutTime: entry.clockOutTime ? entry.clockOutTime.slice(0, 16) : "",
+  });
+}
+
+function handleTimeFormChange(e) {
+  const { name, value } = e.target;
+
+  setTimeForm((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+}
+
+async function handleUpdateTimeEntry(e) {
+  e.preventDefault();
+
+  try {
+    const updatedEntry = await updateTimeEntry(editingTimeEntryId, {
+      clockInTime: timeForm.clockInTime,
+      clockOutTime: timeForm.clockOutTime || null,
+    });
+
+    setTimeEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === updatedEntry.id ? updatedEntry : entry
+      )
+    );
+
+    setEditingTimeEntryId(null);
+
+    setTimeForm({
+      clockInTime: "",
+      clockOutTime: "",
+    });
+  } catch (err) {
+    setError(err.message || "Failed to update time entry");
+  }
+}
+function formatTime(dataString) {
+    if(!dataString) return"";
+    return new Date(dataString).toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        });
+    }
 
   async function handleDeleteEmployee(employeeId) {
     try {
@@ -322,9 +400,78 @@ if (error) {
                                                              </form>
                                                            </>
                                                            )}
+
+                                                       {editingTimeEmployeeId === employee.id && (
+                                                         <>
+                                                           <hr />
+                                                           <div className="register-form">
+
+                                                             <h3>Edit Time Entries</h3>
+
+                                                             {timeEntries.length === 0 ? (
+                                                               <p>No time entries found.</p>
+
+                                                             ) : (
+                                                               timeEntries.map((entry) => (
+                                                                 <div key={entry.id} className="time-entry-edit-card">
+                                                                   <p>
+                                                                     <strong>{entry.workDate}</strong>
+                                                                   </p>
+                                                                   {editingTimeEntryId === entry.id ? (
+                                                                     <form onSubmit={handleUpdateTimeEntry} className="register-form">
+                                                                       <label>
+                                                                         Clock In
+                                                                         <input
+                                                                           type="datetime-local"
+                                                                           name="clockInTime"
+                                                                           value={timeForm.clockInTime}
+                                                                           onChange={handleTimeFormChange}
+                                                                           required
+                                                                         />
+                                                                       </label>
+                                                                       <label>
+                                                                         Clock Out
+                                                                         <input
+                                                                           type="datetime-local"
+                                                                           name="clockOutTime"
+                                                                           value={timeForm.clockOutTime}
+                                                                           onChange={handleTimeFormChange}
+                                                                         />
+                                                                       </label>
+
+                                                                       <div className="edit-buttons">
+                                                                         <button type="submit">Save Time</button>
+                                                                         <button type="button" onClick={() => setEditingTimeEntryId(null)}>
+                                                                           Cancel
+                                                                         </button>
+                                                                      </div>
+                                                                     </form>
+                                                                   ) : (
+                                                                     <>
+                                                                       <p>In: {formatTime(entry.clockInTime)}</p>
+                                                                       <p>Out: {entry.clockOutTime ? formatTime(entry.clockOutTime) : "Still clocked in"}</p>
+                                                                       <button type="button" onClick={() => handleEditTimeClick(entry)}>
+                                                                         Edit Time
+                                                                       </button>
+                                                                     </>
+                                                                   )}
+                                                                 </div>
+                                                               ))
+                                                             )}
+                                                           </div>
+                                                           <div className="edit-buttons">
+                                                                 <button type="button" onClick={handleCloseTimeManager}>
+                                                                   Cancel
+                                                                 </button>
+                                                               </div>
+                                                         </>
+                                                       )}
                          </div>
-                         {editingEmployeeId !== employee.id && (
-                         <div className="employee-actions">
+                         {editingEmployeeId !== employee.id && editingTimeEmployeeId !== employee.id && (
+                           <div className="employee-actions">
+                             <button type="button" onClick={() => handleManageTime(employee.id)}>
+                                 Manage Time
+                             </button>
                            <button type="button" onClick={() => handleEditClick(employee)}>
                              Edit
                            </button>
@@ -337,11 +484,9 @@ if (error) {
                      ))}
                    </ul>
                  )}
-
                </div>
              </div>
            </div>
-
 )}
 
 export default CompaniesPage;

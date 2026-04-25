@@ -156,6 +156,26 @@ export async function fetchTimeEntries(employeeId) {
 
   return data;
 }
+const TIME_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/time`;
+
+export async function updateTimeEntry(entryId, entryData) {
+  const response = await fetch(`${TIME_BASE_URL}/entries/${entryId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(entryData),
+  });
+
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to update time entry");
+  }
+
+  return data;
+}
 
 export async function deleteEmployee(id) {
   const response = await fetch(`${BASE_URL}/${id}`, {
