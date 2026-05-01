@@ -39,4 +39,9 @@ public class TimeEntryController {
     public ResponseEntity<List<TimeEntryDto>> getEmployeeEntries(@PathVariable Long employeeId) {
         return ResponseEntity.ok(timeEntryService.getEntriesForEmployee(employeeId));
     }
+    @DeleteMapping("/entries/{entryId}")
+    public ResponseEntity<Void> deleteTimeEntry(@PathVariable Long entryId) {
+        timeEntryService.deleteTimeEntry(entryId);
+        return ResponseEntity.noContent().build();
+    }
 }

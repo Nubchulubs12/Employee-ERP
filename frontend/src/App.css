@@ -190,6 +190,16 @@
   color: white;
 }
 
+.nav-left a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.nav-left a:hover {
+  color: rgb(105, 105, 105)
+}
+
+
 .nav-left {
   font-weight: bold;
   font-size: 18px;
@@ -656,3 +666,163 @@
   background: #fff4cc;
   border-top: 3px solid #e0a800;
 }
+
+.timesheet-entry--split {
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.timesheet-entry-split-label {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.timesheet-weekly-total {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 2px solid #ccc;
+  font-weight: 600;
+}
+
+.timesheet-weekly-total-hours {
+  font-size: 1.1rem;
+}
+
+
+.timesheet-week-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  margin-bottom: 8px;
+}
+
+.timesheet-nav-btn {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.timesheet-nav-btn:hover {
+  background: #f0f0f0;
+}
+
+.timesheet-week-label {
+  font-weight: 600;
+  min-width: 220px;
+  text-align: center;
+}
+
+.timesheet-today-btn {
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+}
+
+.timesheet-today-btn:hover {
+  background: #f0f0f0;
+}
+
+.employee-tabs {
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 12px;
+  gap: 4px;
+}
+
+.employee-tab {
+  text-align: left;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #555;
+  transition: background 0.15s, color 0.15s;
+}
+
+.employee-tab:hover {
+  background: #f0f0f0;
+  color: #000;
+}
+
+.employee-tab--active {
+  background: #e8f0fe;
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+.employee-tab-content {
+  padding-top: 8px;
+}
+
+
+
+.time-manager-panel {
+  margin-top: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fafafa;
+}
+
+.mini-time-grid { width: 100%; }
+
+.mini-grid-days {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.mini-grid-day { flex: 1; min-width: 110px; }
+
+.mini-grid-day-header {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 4px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.mini-grid-today { background: #fff3cd; }
+
+.mini-grid-entry {
+  background: #3d52c4;
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+}
+
+.mini-grid-entry-times { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.mini-grid-sep { opacity: 0.7; }
+.mini-grid-entry-hrs { opacity: 0.85; margin-top: 2px; }
+
+.mini-grid-entry-actions { display: flex; gap: 4px; margin-top: 6px; }
+
+.mini-btn { font-size: 0.7rem; padding: 2px 7px; border-radius: 4px; border: none; cursor: pointer; }
+.mini-btn-edit { background: #fff; color: #3d52c4; }
+.mini-btn-delete { background: #ff4d4d; color: #fff; }
+.mini-btn-cancel { background: none; border: 1px solid #ccc; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.85rem; color: #000; }
+
+.mini-grid-empty { text-align: center; color: #aaa; font-size: 0.8rem; padding: 8px 0; }
+
+.time-edit-form { margin-bottom: 16px; padding: 12px; background: #fff; border: 1px solid #ddd; border-radius: 6px; }

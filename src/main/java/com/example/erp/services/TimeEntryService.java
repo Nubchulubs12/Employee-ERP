@@ -59,6 +59,12 @@ public class TimeEntryService {
 
         return toDto(timeEntryRepository.save(entry));
     }
+    public void deleteTimeEntry(Long entryId) {
+        TimeEntry entry = timeEntryRepository.findById(entryId)
+                .orElseThrow(() -> new RuntimeException("Time entry not found with id: " + entryId));
+        timeEntryRepository.delete(entry);
+    }
+
     public TimeEntryDto updateTimeEntry(Long entryId, UpdateTimeEntryRequest request) {
         TimeEntry entry = timeEntryRepository.findById(entryId)
                 .orElseThrow(() -> new RuntimeException("Time entry not found with id: " + entryId));

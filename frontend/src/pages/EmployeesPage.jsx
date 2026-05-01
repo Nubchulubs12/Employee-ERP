@@ -11,6 +11,8 @@ import {
 function EmployeesPage() {
   const { id } = useParams();
 
+  const [activeTab, setActiveTab] = useState("timeclock");
+
   const [timeEntries, setTimeEntries] = useState([]);
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [employee, setEmployee] = useState(null);
@@ -28,25 +30,19 @@ function EmployeesPage() {
       try {
         const data = await fetchTimeEntries(id);
         setTimeEntries(data);
-
         const openEntry = data.find((entry) => !entry.clockOutTime);
         setIsClockedIn(!!openEntry);
       } catch (err) {
         setError(err.message || "Failed to load time entries");
       }
     }
-
-    if (id) {
-      loadTimeEntries();
-    }
+    if (id) loadTimeEntries();
   }, [id]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
-
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
-
       if (parsed.userType === "employee" && String(parsed.id) === String(id)) {
         setEmployee(parsed);
       }
@@ -67,13 +63,9 @@ function EmployeesPage() {
   async function handleClockOut() {
     try {
       const updatedEntry = await clockOut(id);
-
       setTimeEntries((prev) =>
-        prev.map((entry) =>
-          entry.id === updatedEntry.id ? updatedEntry : entry
-        )
+        prev.map((entry) => (entry.id === updatedEntry.id ? updatedEntry : entry))
       );
-
       setIsClockedIn(false);
       setError("");
     } catch (err) {
@@ -83,10 +75,7 @@ function EmployeesPage() {
 
   function handlePasswordInputChange(e) {
     const { name, value } = e.target;
-    setPasswordForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
   }
 
   async function handleChangePassword(e) {
@@ -101,33 +90,74 @@ function EmployeesPage() {
 
     try {
       await changeEmployeePassword(id, passwordForm);
-
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setMessage("Password updated successfully.");
     } catch (err) {
       setError(err.message || "Failed to update password");
     }
   }
 
+  function handleTabChange(tab) {
+    setActiveTab(tab);
+    setError("");
+    setMessage("");
+  }
+
   if (!employee) {
     return <p>Loading employee info...</p>;
   }
-console.log(timeEntries);
+
   return (
     <div className="company-page">
-        <div className="company-left">
-      <h1>Welcome, {employee.name}</h1>
 
-      <p><strong>Email:</strong> {employee.email}</p>
-      <p><strong>Company:</strong> {employee.companyName || "N/A"}</p>
+      <div className="company-left">
+        <h1>Welcome, {employee.name}</h1>
+        <p><strong>Email:</strong> {employee.email}</p>
+        <p><strong>Company:</strong> {employee.companyName || "N/A"}</p>
 
-      <hr />
-       <h2>Change Password</h2>
+
+        <div className="employee-tabs">
+          <button
+            type="button"
+            className={`employee-tab${activeTab === "timeclock" ? " employee-tab--active" : ""}`}
+            onClick={() => handleTabChange("timeclock")}
+          >
+            Time Clock
+          </button>
+          <button
+            type="button"
+            className={`employee-tab${activeTab === "password" ? " employee-tab--active" : ""}`}
+            onClick={() => handleTabChange("password")}
+          >
+            Change Password
+          </button>
+        </div>
+      </div>
+
+
+      <div className="company-right">
+
+
+        {activeTab === "timeclock" && (
+          <div className="employee-tab-content">
+            <div className="clock-actions">
+              {!isClockedIn ? (
+                <button type="button" onClick={handleClockIn}>Clock In</button>
+              ) : (
+                <button type="button" onClick={handleClockOut}>Clock Out</button>
+              )}
+            </div>
+
+            {error && <p className="error-message">{error}</p>}
+
+            <h3>Recent Time Entries</h3>
+            <TimeSheetGrid timeEntries={timeEntries} />
+          </div>
+        )}
+
+        {activeTab === "password" && (
+          <div className="employee-tab-content">
+            <h2>Change Password</h2>
 
             {error && <p className="error-message">{error}</p>}
             {message && <p className="success-message">{message}</p>}
@@ -168,24 +198,8 @@ console.log(timeEntries);
 
               <button type="submit">Update Password</button>
             </form>
-      </div>
-
-<div className="company-right">
-      <h2>Time Clock</h2>
-
-      <div className="clock-actions">
-        {!isClockedIn ? (
-          <button type="button" onClick={handleClockIn}>Clock In</button>
-        ) : (
-          <button type="button" onClick={handleClockOut}>Clock Out</button>
+          </div>
         )}
-      </div>
-
-      <h3>Recent Time Entries</h3>
-        <TimeSheetGrid timeEntries={timeEntries} />
-      <hr />
-
-
       </div>
     </div>
   );

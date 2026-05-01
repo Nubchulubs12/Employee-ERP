@@ -2,6 +2,7 @@
 //const TIME_URL = 'https://employee-erps.onrender.com/api/time/employees';
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/employees`;
 const TIME_URL = `${import.meta.env.VITE_API_BASE_URL}/api/time/employees`;
+const TIME_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/time`;
 
 export async function fetchEmployees(companyId) {
   const response = await fetch(`${BASE_URL}/company/${companyId}`);
@@ -156,7 +157,6 @@ export async function fetchTimeEntries(employeeId) {
 
   return data;
 }
-const TIME_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/time`;
 
 export async function updateTimeEntry(entryId, entryData) {
   const response = await fetch(`${TIME_BASE_URL}/entries/${entryId}`, {
@@ -172,6 +172,27 @@ export async function updateTimeEntry(entryId, entryData) {
 
   if (!response.ok) {
     throw new Error(data?.message || data || "Failed to update time entry");
+  }
+
+  return data;
+}
+
+export async function deleteTimeEntry(entryId) {
+  const response = await fetch(`${TIME_BASE_URL}/entries/${entryId}`, {
+    method: "DELETE",
+  });
+
+  const text = await response.text();
+  let data;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to delete time entry");
   }
 
   return data;
