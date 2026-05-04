@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class UpdateEmployeeRequest {
@@ -19,7 +20,7 @@ public class UpdateEmployeeRequest {
     @NotBlank
     @Email
     private String email;
-
+    private BigDecimal hourlyRate;
     private String jobTitle;
     private LocalDate hireDate;
 
@@ -80,5 +81,13 @@ public class UpdateEmployeeRequest {
 
     public void setPwHash(String pwHash) {
         this.pwHash = pwHash;
+    }
+
+    public BigDecimal getHourlyRate() {
+        return hourlyRate;
+    }
+
+    public void setHourlyRate(BigDecimal hourlyRate) {
+        this.hourlyRate = hourlyRate;
     }
 }

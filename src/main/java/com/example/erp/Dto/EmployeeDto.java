@@ -1,5 +1,6 @@
 package com.example.erp.Dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class EmployeeDto {
@@ -11,12 +12,13 @@ public class EmployeeDto {
     private LocalDate hireDate;
     private Long companyId;
     private String companyName;
+    private BigDecimal hourlyRate;
 
     public EmployeeDto() {
     }
 
     public EmployeeDto(Long id, String firstName, String lastName, String email,
-                       String jobTitle, LocalDate hireDate, Long companyId, String companyName) {
+                       String jobTitle, LocalDate hireDate, Long companyId, String companyName, BigDecimal hourlyRate) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -25,6 +27,7 @@ public class EmployeeDto {
         this.hireDate = hireDate;
         this.companyId = companyId;
         this.companyName = companyName;
+        this.hourlyRate = hourlyRate;
     }
 
     public Long getId() {
@@ -89,5 +92,13 @@ public class EmployeeDto {
 
     public void setCompanyName(String companyName) {
         this.companyName = companyName;
+    }
+
+    public BigDecimal getHourlyRate() {
+        return hourlyRate;
+    }
+
+    public void setHourlyRate(BigDecimal hourlyRate) {
+        this.hourlyRate = hourlyRate;
     }
 }

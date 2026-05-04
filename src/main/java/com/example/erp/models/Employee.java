@@ -1,5 +1,6 @@
 package com.example.erp.models;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import jakarta.persistence.*;
@@ -25,6 +26,7 @@ private String email;
 private String pwHash;
 private String jobTitle;
 private LocalDate hireDate;
+private BigDecimal hourlyRate;
 
 @ManyToOne(fetch = FetchType.EAGER, optional = false)
 @JoinColumn(name = "company_id", nullable = false)
@@ -95,5 +97,13 @@ public void setCompany(Company company) {
 
     public void setPwHash(String pwHash) {
         this.pwHash = pwHash;
+    }
+
+    public BigDecimal getHourlyRate() {
+        return hourlyRate;
+    }
+
+    public void setHourlyRate(BigDecimal hourlyRate) {
+        this.hourlyRate = hourlyRate;
     }
 }

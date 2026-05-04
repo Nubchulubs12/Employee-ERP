@@ -22,7 +22,7 @@ function CompaniesPage() {
 
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [editForm, setEditForm] = useState({
-    firstName: "", lastName: "", email: "", jobTitle: "", hireDate: "",
+    firstName: "", lastName: "", email: "", jobTitle: "", hireDate: "", hourlyRate: "",
   });
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
@@ -32,8 +32,10 @@ function CompaniesPage() {
   const [timeForm, setTimeForm] = useState({ clockInTime: "", clockOutTime: "" });
 
   const [employeeForm, setEmployeeForm] = useState({
-    firstName: "", lastName: "", email: "", password: "", jobTitle: "", hireDate: "", companyId: "",
+    firstName: "", lastName: "", email: "", password: "", jobTitle: "", hireDate: "", companyId: "", hourlyRate: "",
   });
+  const [payrollPeriodType, setPayrollPeriodType] = useState("weekly");
+    const [payrollStartDate, setPayrollStartDate] = useState("");
 
 
   useEffect(() => {
@@ -74,7 +76,7 @@ function CompaniesPage() {
     try {
       const created = await createEmployee(employeeForm);
       setEmployees((prev) => [...prev, created]);
-      setEmployeeForm({ firstName: "", lastName: "", email: "", password: "", jobTitle: "", hireDate: "", companyId: company.id });
+      setEmployeeForm({ firstName: "", lastName: "", email: "", password: "", jobTitle: "", hireDate: "", companyId: company.id, hourlyRate: "",});
     } catch (err) {
       setError(err.message || "Failed to create employee");
     }
@@ -88,6 +90,7 @@ function CompaniesPage() {
       email: employee.email || "",
       jobTitle: employee.jobTitle || "",
       hireDate: employee.hireDate || "",
+      hourlyRate: employee.hourlyRate || "",
     });
   }
 
@@ -102,7 +105,7 @@ function CompaniesPage() {
       const updated = await updateEmployee(editingEmployeeId, editForm);
       setEmployees((prev) => prev.map((emp) => (emp.id === editingEmployeeId ? updated : emp)));
       setEditingEmployeeId(null);
-      setEditForm({ firstName: "", lastName: "", email: "", jobTitle: "", hireDate: "" });
+      setEditForm({ firstName: "", lastName: "", email: "", jobTitle: "", hireDate: "", hourlyRate: ""});
     } catch (err) {
       setError(err.message || "Failed to update employee");
     }
@@ -119,6 +122,32 @@ function CompaniesPage() {
     } catch (err) {
       setError(err.message || "Failed to delete employee");
     }
+  }
+
+  function calculateHours(entry) {
+    if (!entry.clockInTime || !entry.clockOutTime) return 0;
+
+    const clockIn = new Date(entry.clockInTime);
+    const clockOut = new Date(entry.clockOutTime);
+
+    if (Number.isNaN(clockIn.getTime()) || Number.isNaN(clockOut.getTime())) return 0;
+
+    return (clockOut - clockIn) / (1000 * 60 * 60);
+  }
+
+  function calculatePayroll(entries, hourlyRate) {
+    const totalHours = entries.reduce((sum, entry) => sum + calculateHours(entry), 0);
+    const regularHours = Math.min(totalHours, 40);
+    const overtimeHours = Math.max(totalHours - 40, 0);
+    const rate = Number(hourlyRate || 0);
+    const grossPay = (regularHours * rate) + (overtimeHours * rate * 1.5);
+
+    return {
+      totalHours,
+      regularHours,
+      overtimeHours,
+      grossPay,
+    };
   }
 
 
@@ -177,6 +206,70 @@ function CompaniesPage() {
       setError(err.message || "Failed to delete time entry");
     }
   }
+   function calculatePayroll(entries, hourlyRate) {
+      const totalHours = entries.reduce(
+        (sum, entry) => sum + calculateHours(entry),
+        0
+      );
+
+      const regularHours = Math.min(totalHours, 40);
+      const overtimeHours = Math.max(totalHours - 40, 0);
+      const rate = Number(hourlyRate || 0);
+      const grossPay = regularHours * rate + overtimeHours * rate * 1.5;
+
+      return {
+        totalHours,
+        regularHours,
+        overtimeHours,
+        grossPay,
+      };
+    }
+
+    function toDateOnly(date) {
+      return date.toISOString().split("T")[0];
+    }
+
+    function addDays(date, days) {
+      const copy = new Date(date);
+      copy.setDate(copy.getDate() + days);
+      return copy;
+    }
+
+    function getPayrollPeriod() {
+      const start = payrollStartDate
+        ? new Date(`${payrollStartDate}T00:00:00`)
+        : new Date();
+
+      const end = addDays(start, payrollPeriodType === "weekly" ? 6 : 13);
+
+      return {
+        start,
+        end,
+        startText: toDateOnly(start),
+        endText: toDateOnly(end),
+      };
+    }
+
+    function isEntryInPayrollPeriod(entry, start, end) {
+      if (!entry.clockInTime) return false;
+
+      const entryDate = new Date(entry.clockInTime);
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+
+      return entryDate >= startDate && entryDate <= endDate;
+    }
+
+    function getPayrollEntries(entries) {
+      const period = getPayrollPeriod();
+
+      return entries.filter((entry) =>
+        isEntryInPayrollPeriod(entry, period.start, period.end)
+      );
+    }
 
   if (error) return <p className="error-message">{error}</p>;
   if (!company) return <p>Loading company info...</p>;
@@ -202,6 +295,7 @@ function CompaniesPage() {
             <label>Password<input type="password" name="password" value={employeeForm.password} onChange={handleEmployeeChange} required /></label>
             <label>Job Title<input type="text" name="jobTitle" value={employeeForm.jobTitle} onChange={handleEmployeeChange} /></label>
             <label>Hire Date<input type="date" name="hireDate" value={employeeForm.hireDate} onChange={handleEmployeeChange} /></label>
+            <label>Hourly Rate<input type="number" name="hourlyRate" value={employeeForm.hourlyRate} onChange={handleEmployeeChange} /></label>
             <button type="submit">Add Employee</button>
           </form>
 
@@ -236,6 +330,7 @@ function CompaniesPage() {
                           <label>Email<input type="email" name="email" value={editForm.email} onChange={handleEditChange} /></label>
                           <label>Job Title<input type="text" name="jobTitle" value={editForm.jobTitle} onChange={handleEditChange} /></label>
                           <label>Hire Date<input type="date" name="hireDate" value={editForm.hireDate} onChange={handleEditChange} /></label>
+                          <label>Hourly Rate<input type="number" name="hourlyRate" value={editForm.hourlyRate} onChange={handleEditChange} /></label>
                           <div className="edit-buttons">
                             <button type="submit">Save Changes</button>
                             <button type="button" onClick={() => setEditingEmployeeId(null)}>Cancel</button>
@@ -298,11 +393,96 @@ function CompaniesPage() {
             {timeEntries.length === 0 ? (
               <p>No time entries found.</p>
             ) : (
-              <MiniTimeGrid
-                timeEntries={timeEntries}
-                onEdit={handleEditTimeClick}
-                onDelete={handleDeleteTimeEntry}
-              />
+                <>
+                                <MiniTimeGrid
+                                  timeEntries={timeEntries}
+                                  onEdit={handleEditTimeClick}
+                                  onDelete={handleDeleteTimeEntry}
+                                />
+
+                                {(() => {
+                                  const period = getPayrollPeriod();
+                                  const payrollEntries = getPayrollEntries(timeEntries);
+
+                                  const payroll = calculatePayroll(
+                                    payrollEntries,
+                                    selectedEmployee.hourlyRate
+                                  );
+
+                                  return (
+                                    <div className="payroll-summary">
+                                      <div className="payroll-summary-header">
+                                        <h4>Payroll Summary</h4>
+
+                                        <div className="payroll-controls">
+                                          <button
+                                            type="button"
+                                            className={
+                                              payrollPeriodType === "weekly"
+                                                ? "active-payroll-btn"
+                                                : ""
+                                            }
+                                            onClick={() => setPayrollPeriodType("weekly")}
+                                          >
+                                            Weekly
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            className={
+                                              payrollPeriodType === "biweekly"
+                                                ? "active-payroll-btn"
+                                                : ""
+                                            }
+                                            onClick={() => setPayrollPeriodType("biweekly")}
+                                          >
+                                            Bi-Weekly
+                                          </button>
+
+                                          <input
+                                            type="date"
+                                            value={payrollStartDate}
+                                            onChange={(e) =>
+                                              setPayrollStartDate(e.target.value)
+                                            }
+                                          />
+                                        </div>
+                                      </div>
+
+                                      <p>
+                                        <strong>Pay Period:</strong> {period.startText} —{" "}
+                                        {period.endText}
+                                      </p>
+
+                                      <p>
+                                        <strong>Total Hours:</strong>{" "}
+                                        {payroll.totalHours.toFixed(2)}
+                                      </p>
+
+                                      <p>
+                                        <strong>Regular Hours:</strong>{" "}
+                                        {payroll.regularHours.toFixed(2)}
+                                      </p>
+
+                                      <p>
+                                        <strong>Overtime Hours:</strong>{" "}
+                                        {payroll.overtimeHours.toFixed(2)}
+                                      </p>
+
+                                      <p>
+                                        <strong>Hourly Rate:</strong> $
+                                        {Number(selectedEmployee.hourlyRate || 0).toFixed(2)}
+                                        /hr
+                                      </p>
+
+                                      <p>
+                                        <strong>Estimated Gross Pay:</strong> $
+                                        {payroll.grossPay.toFixed(2)}
+                                      </p>
+                                    </div>
+                                  );
+                                })()}
+                              </>
             )}
           </div>
         )}

@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class CreateEmployeeRequest {
@@ -23,7 +24,7 @@ public class CreateEmployeeRequest {
     private Long companyId;
 
 
-
+    private BigDecimal hourlyRate;
     private String jobTitle;
     private LocalDate hireDate;
 
@@ -83,5 +84,13 @@ public class CreateEmployeeRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public BigDecimal getHourlyRate() {
+        return hourlyRate;
+    }
+
+    public void setHourlyRate(BigDecimal hourlyRate) {
+        this.hourlyRate = hourlyRate;
     }
 }

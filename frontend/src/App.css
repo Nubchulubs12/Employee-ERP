@@ -826,3 +826,45 @@
 .mini-grid-empty { text-align: center; color: #aaa; font-size: 0.8rem; padding: 8px 0; }
 
 .time-edit-form { margin-bottom: 16px; padding: 12px; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
+
+
+.payroll-summary {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.payroll-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.payroll-summary h4 {
+  margin: 0 0 8px;
+}
+
+.payroll-summary p {
+  margin: 4px 0;
+}
+
+.payroll-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.payroll-controls button,
+.payroll-controls input {
+  padding: 6px 8px;
+}
+
+.active-payroll-btn {
+  background: #2563eb;
+  color: white;
+  border: 1px solid #2563eb;
+}

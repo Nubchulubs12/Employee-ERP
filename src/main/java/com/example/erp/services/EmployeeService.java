@@ -54,6 +54,7 @@ public class EmployeeService {
         employee.setHireDate(request.getHireDate());
         employee.setCompany(company);
         employee.setPwHash(passwordEncoder.encode(request.getPassword()));
+        employee.setHourlyRate(request.getHourlyRate());
 
         return toDto(employeeRepository.save(employee));
     }
@@ -68,6 +69,7 @@ public class EmployeeService {
         employee.setEmail(request.getEmail());
         employee.setJobTitle(request.getJobTitle());
         employee.setHireDate(request.getHireDate());
+        employee.setHourlyRate(request.getHourlyRate());
 
         return toDto(employeeRepository.save(employee));
     }
@@ -112,7 +114,8 @@ public class EmployeeService {
                 employee.getJobTitle(),
                 employee.getHireDate(),
                 employee.getCompany().getId(),
-                employee.getCompany().getName()
+                employee.getCompany().getName(),
+                employee.getHourlyRate()
         );
     }
 }

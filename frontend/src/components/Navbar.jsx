@@ -18,6 +18,13 @@ function Navbar() {
       } else if (user.userType === "company") {
         setProfileLink(`/companies/${user.id}`);
       }
+  if (location.pathname === "/login" || location.pathname === "/register") {
+          if (user.userType === "employee") {
+            navigate(`/employees/${user.id}`, { replace: true });
+          } else if (user.userType === "company") {
+            navigate(`/companies/${user.id}`, { replace: true });
+          }
+        }
     } else {
       setIsLoggedIn(false);
       setProfileLink("/");
