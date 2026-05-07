@@ -868,3 +868,51 @@
   color: white;
   border: 1px solid #2563eb;
 }
+
+
+.pto-request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pto-request-card {
+  padding: 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.pto-request-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.pto-status {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.pto-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pto-status-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.pto-status-denied {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.register-form textarea {
+  width: 100%;
+  resize: vertical;
+}

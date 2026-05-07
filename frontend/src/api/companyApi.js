@@ -43,3 +43,28 @@ export async function registerCompany(company) {
 
   return data;
 }
+
+export async function updateCompanySettings(id, settings) {
+  const response = await fetch(`${BASE_URL}/${id}/settings`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(settings),
+  });
+
+  const text = await response.text();
+  let data;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to update company settings");
+  }
+
+  return data;
+}

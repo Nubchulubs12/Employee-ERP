@@ -3,6 +3,7 @@
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/employees`;
 const TIME_URL = `${import.meta.env.VITE_API_BASE_URL}/api/time/employees`;
 const TIME_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/time`;
+const PTO_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/pto`;
 
 export async function fetchEmployees(companyId) {
   const response = await fetch(`${BASE_URL}/company/${companyId}`);
@@ -206,4 +207,124 @@ export async function deleteEmployee(id) {
   if (!response.ok) {
     throw new Error('Failed to delete employee');
   }
+}
+
+export async function createPtoRequest(employeeId, requestData) {
+  const response = await fetch(`${PTO_BASE_URL}/employees/${employeeId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestData),
+  });
+
+  const text = await response.text();
+  let data;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to create PTO request");
+  }
+
+  return data;
+}
+
+export async function fetchEmployeePtoRequests(employeeId) {
+  const response = await fetch(`${PTO_BASE_URL}/employees/${employeeId}`);
+
+  const text = await response.text();
+  let data;
+
+  try {
+    data = text ? JSON.parse(text) : [];
+  } catch {
+    data = [];
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to load PTO requests");
+  }
+
+  return data;
+}
+
+export async function fetchCompanyPtoRequests(companyId) {
+  const response = await fetch(`${PTO_BASE_URL}/company/${companyId}`);
+
+  const text = await response.text();
+  let data;
+
+  try {
+    data = text ? JSON.parse(text) : [];
+  } catch {
+    data = [];
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to load company PTO requests");
+  }
+
+  return data;
+}
+
+export async function approvePtoRequest(requestId, reviewNote = "") {
+  const response = await fetch(`${PTO_BASE_URL}/${requestId}/approve`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ reviewNote }),
+  });
+
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to approve PTO request");
+  }
+
+  return data;
+}
+
+export async function denyPtoRequest(requestId, reviewNote = "") {
+  const response = await fetch(`${PTO_BASE_URL}/${requestId}/deny`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ reviewNote }),
+  });
+
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to deny PTO request");
+  }
+
+  return data;
+}
+
+export async function fetchEmployeeById(id) {
+  const response = await fetch(`${BASE_URL}/${id}`);
+
+  const text = await response.text();
+  let data;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to load employee");
+  }
+
+  return data;
 }
