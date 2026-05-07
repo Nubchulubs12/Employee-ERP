@@ -27,8 +27,15 @@ public class CreateEmployeeRequest {
     private BigDecimal hourlyRate;
     private String jobTitle;
     private LocalDate hireDate;
+    private BigDecimal ptoBalanceHours;
 
+    public BigDecimal getPtoBalanceHours() {
+        return ptoBalanceHours;
+    }
 
+    public void setPtoBalanceHours(BigDecimal ptoBalanceHours) {
+        this.ptoBalanceHours = ptoBalanceHours;
+    }
 
     public String getFirstName() {
         return firstName;

@@ -10,6 +10,7 @@ import com.example.erp.data.EmployeeRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -55,6 +56,7 @@ public class EmployeeService {
         employee.setCompany(company);
         employee.setPwHash(passwordEncoder.encode(request.getPassword()));
         employee.setHourlyRate(request.getHourlyRate());
+        employee.setPtoBalanceHours(request.getPtoBalanceHours() == null ? BigDecimal.ZERO: request.getPtoBalanceHours());
 
         return toDto(employeeRepository.save(employee));
     }
@@ -70,6 +72,7 @@ public class EmployeeService {
         employee.setJobTitle(request.getJobTitle());
         employee.setHireDate(request.getHireDate());
         employee.setHourlyRate(request.getHourlyRate());
+        employee.setPtoBalanceHours(request.getPtoBalanceHours() == null ? BigDecimal.ZERO: request.getPtoBalanceHours());
 
         return toDto(employeeRepository.save(employee));
     }
@@ -105,7 +108,6 @@ public class EmployeeService {
     }
 
     private EmployeeDto toDto(Employee employee) {
-
         return new EmployeeDto(
                 employee.getId(),
                 employee.getFirstName(),
@@ -115,7 +117,8 @@ public class EmployeeService {
                 employee.getHireDate(),
                 employee.getCompany().getId(),
                 employee.getCompany().getName(),
-                employee.getHourlyRate()
+                employee.getHourlyRate(),
+                employee.getPtoBalanceHours()
         );
     }
 }

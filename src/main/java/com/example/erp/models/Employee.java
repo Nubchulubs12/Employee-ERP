@@ -27,6 +27,7 @@ private String pwHash;
 private String jobTitle;
 private LocalDate hireDate;
 private BigDecimal hourlyRate;
+private BigDecimal ptoBalanceHours;
 
 @ManyToOne(fetch = FetchType.EAGER, optional = false)
 @JoinColumn(name = "company_id", nullable = false)
@@ -43,7 +44,15 @@ public void setId(Long id) {
     this.id = id;
 }
 
-public String getFirstName() {
+    public BigDecimal getPtoBalanceHours() {
+        return ptoBalanceHours;
+    }
+
+    public void setPtoBalanceHours(BigDecimal ptoBalanceHours) {
+        this.ptoBalanceHours = ptoBalanceHours;
+    }
+
+    public String getFirstName() {
     return firstName;
 }
 

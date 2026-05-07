@@ -14,8 +14,11 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOrigins("http://localhost:5173",
-                                "https://employee-erp-h591.onrender.com")
+                        .allowedOrigins(
+                                "http://localhost:5173",
+                                "https://employee-erp-h591.onrender.com",
+                                "https://employee-erps.onrender.com"
+                        )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*");
             }

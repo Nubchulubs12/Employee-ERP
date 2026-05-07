@@ -1,4 +1,7 @@
 package com.example.erp.models;
 
-public class PtoStatus {
+public enum PtoStatus {
+    PENDING,
+    APPROVED,
+    DENIED
 }

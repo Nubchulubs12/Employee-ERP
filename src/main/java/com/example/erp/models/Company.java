@@ -2,6 +2,8 @@ package com.example.erp.models;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "companies")
 public class Company {
@@ -21,8 +23,34 @@ public class Company {
 
     @Column(nullable = false)
     private String pwHash;
-
+    private String payrollType;
+    private String payday;
+    private LocalDate biweeklyStartDate;
     public Company() {
+    }
+
+    public String getPayrollType() {
+        return payrollType;
+    }
+
+    public void setPayrollType(String payrollType) {
+        this.payrollType = payrollType;
+    }
+
+    public String getPayday() {
+        return payday;
+    }
+
+    public void setPayday(String payday) {
+        this.payday = payday;
+    }
+
+    public LocalDate getBiweeklyStartDate() {
+        return biweeklyStartDate;
+    }
+
+    public void setBiweeklyStartDate(LocalDate biweeklyStartDate) {
+        this.biweeklyStartDate = biweeklyStartDate;
     }
 
     public Long getId() {

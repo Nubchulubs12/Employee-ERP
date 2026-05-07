@@ -2,6 +2,7 @@ package com.example.erp.controller;
 
 import com.example.erp.Dto.CompanyDto;
 import com.example.erp.Dto.CreateCompanyRequest;
+import com.example.erp.Dto.UpdateCompanySettingsRequest;
 import com.example.erp.services.CompanyService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,13 @@ public class CompanyController {
    public ResponseEntity<CompanyDto> registerCompany(
            @Valid @RequestBody CreateCompanyRequest request) {
         return ResponseEntity.ok(companyService.createCompany(request));
+    }
+    @PutMapping("/{id}/settings")
+    public ResponseEntity<CompanyDto> updateCompanySettings(
+            @PathVariable Long id,
+            @RequestBody UpdateCompanySettingsRequest request
+    ) {
+        return ResponseEntity.ok(companyService.updateCompanySettings(id, request));
     }
 
 }
