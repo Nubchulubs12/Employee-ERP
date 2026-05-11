@@ -13,6 +13,10 @@ function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+useEffect(() => {
+  fetch(`${import.meta.env.VITE_API_BASE_URL}/api/health`).catch(() => {});
+}, []);
+
   function handleChange(e) {
     const { name, value } = e.target;
 
