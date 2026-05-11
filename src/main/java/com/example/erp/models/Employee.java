@@ -29,11 +29,30 @@ private LocalDate hireDate;
 private BigDecimal hourlyRate;
 private BigDecimal ptoBalanceHours;
 
+    private String payType;
+    private BigDecimal salaryRate;
+
 @ManyToOne(fetch = FetchType.EAGER, optional = false)
 @JoinColumn(name = "company_id", nullable = false)
 private Company company;
 
-public Employee() {
+    public String getPayType() {
+        return payType;
+    }
+
+    public void setPayType(String payType) {
+        this.payType = payType;
+    }
+
+    public BigDecimal getSalaryRate() {
+        return salaryRate;
+    }
+
+    public void setSalaryRate(BigDecimal salaryRate) {
+        this.salaryRate = salaryRate;
+    }
+
+    public Employee() {
 }
 
 public Long getId() {

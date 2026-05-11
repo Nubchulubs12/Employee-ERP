@@ -24,7 +24,8 @@ public class UpdateEmployeeRequest {
     private String jobTitle;
     private LocalDate hireDate;
     private BigDecimal ptoBalanceHours;
-
+    private String payType;
+    private BigDecimal salaryRate;
     @NotNull
     private Long companyId;
 
@@ -54,6 +55,22 @@ public class UpdateEmployeeRequest {
 
     public String getEmail() {
         return email;
+    }
+
+    public String getPayType() {
+        return payType;
+    }
+
+    public void setPayType(String payType) {
+        this.payType = payType;
+    }
+
+    public BigDecimal getSalaryRate() {
+        return salaryRate;
+    }
+
+    public void setSalaryRate(BigDecimal salaryRate) {
+        this.salaryRate = salaryRate;
     }
 
     public void setEmail(String email) {

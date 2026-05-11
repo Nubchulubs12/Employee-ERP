@@ -22,7 +22,8 @@ public class CreateEmployeeRequest {
     private String password;
     @NotNull
     private Long companyId;
-
+    private String payType;
+    private BigDecimal salaryRate;
 
     private BigDecimal hourlyRate;
     private String jobTitle;
@@ -35,6 +36,22 @@ public class CreateEmployeeRequest {
 
     public void setPtoBalanceHours(BigDecimal ptoBalanceHours) {
         this.ptoBalanceHours = ptoBalanceHours;
+    }
+
+    public String getPayType() {
+        return payType;
+    }
+
+    public void setPayType(String payType) {
+        this.payType = payType;
+    }
+
+    public BigDecimal getSalaryRate() {
+        return salaryRate;
+    }
+
+    public void setSalaryRate(BigDecimal salaryRate) {
+        this.salaryRate = salaryRate;
     }
 
     public String getFirstName() {

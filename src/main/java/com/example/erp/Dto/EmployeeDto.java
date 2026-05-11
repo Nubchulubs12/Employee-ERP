@@ -14,6 +14,8 @@ public class EmployeeDto {
     private String companyName;
     private BigDecimal hourlyRate;
     private BigDecimal ptoBalanceHours;
+    private String payType;
+    private BigDecimal salaryRate;
 
     public EmployeeDto(
             Long id,
@@ -25,6 +27,8 @@ public class EmployeeDto {
             Long companyId,
             String companyName,
             BigDecimal hourlyRate,
+            BigDecimal salaryRate,
+            String payType,
             BigDecimal ptoBalanceHours
     ) {
         this.id = id;
@@ -36,6 +40,8 @@ public class EmployeeDto {
         this.companyId = companyId;
         this.companyName = companyName;
         this.hourlyRate = hourlyRate;
+        this.salaryRate = salaryRate;
+        this.payType = payType;
         this.ptoBalanceHours = ptoBalanceHours;
     }
 
@@ -49,4 +55,12 @@ public class EmployeeDto {
     public String getCompanyName() { return companyName; }
     public BigDecimal getHourlyRate() { return hourlyRate; }
     public BigDecimal getPtoBalanceHours() { return ptoBalanceHours; }
+
+    public String getPayType() {
+        return payType;
+    }
+
+    public BigDecimal getSalaryRate() {
+        return salaryRate;
+    }
 }

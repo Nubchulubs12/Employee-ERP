@@ -12,6 +12,7 @@ public class CompanyDto {
     private String payday;
     private LocalDate biweeklyStartDate;
 
+
     public CompanyDto() {
     }
 

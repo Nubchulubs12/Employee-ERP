@@ -24,7 +24,6 @@ public class EmployeeService {
         this.employeeRepository = employeeRepository;
         this.companyService = companyService;
         this.passwordEncoder = passwordEncoder;
-
     }
 
     public List<EmployeeDto> getAllEmployees() {
@@ -37,14 +36,14 @@ public class EmployeeService {
     public EmployeeDto getEmployeeById(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
-
         return toDto(employee);
     }
 
     public EmployeeDto createEmployee(CreateEmployeeRequest request) {
-        if (employeeRepository.existsByEmail(request.getEmail())){
+        if (employeeRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Employee email already exists.");
         }
+
         Company company = companyService.getCompanyEntityById(request.getCompanyId());
 
         Employee employee = new Employee();
@@ -55,8 +54,10 @@ public class EmployeeService {
         employee.setHireDate(request.getHireDate());
         employee.setCompany(company);
         employee.setPwHash(passwordEncoder.encode(request.getPassword()));
+        employee.setPayType(request.getPayType() != null ? request.getPayType() : "HOURLY");
         employee.setHourlyRate(request.getHourlyRate());
-        employee.setPtoBalanceHours(request.getPtoBalanceHours() == null ? BigDecimal.ZERO: request.getPtoBalanceHours());
+        employee.setSalaryRate(request.getSalaryRate());
+        employee.setPtoBalanceHours(request.getPtoBalanceHours() == null ? BigDecimal.ZERO : request.getPtoBalanceHours());
 
         return toDto(employeeRepository.save(employee));
     }
@@ -67,12 +68,13 @@ public class EmployeeService {
 
         employee.setFirstName(request.getFirstName());
         employee.setLastName(request.getLastName());
-
         employee.setEmail(request.getEmail());
         employee.setJobTitle(request.getJobTitle());
         employee.setHireDate(request.getHireDate());
+        employee.setPayType(request.getPayType() != null ? request.getPayType() : "HOURLY");
         employee.setHourlyRate(request.getHourlyRate());
-        employee.setPtoBalanceHours(request.getPtoBalanceHours() == null ? BigDecimal.ZERO: request.getPtoBalanceHours());
+        employee.setSalaryRate(request.getSalaryRate());
+        employee.setPtoBalanceHours(request.getPtoBalanceHours() == null ? BigDecimal.ZERO : request.getPtoBalanceHours());
 
         return toDto(employeeRepository.save(employee));
     }
@@ -81,9 +83,9 @@ public class EmployeeService {
         if (!employeeRepository.existsById(id)) {
             throw new RuntimeException("Employee not found with id: " + id);
         }
-
         employeeRepository.deleteById(id);
     }
+
     public List<EmployeeDto> getEmployeeByCompanyId(Long companyId) {
         return employeeRepository.findByCompanyId(companyId)
                 .stream()
@@ -118,6 +120,8 @@ public class EmployeeService {
                 employee.getCompany().getId(),
                 employee.getCompany().getName(),
                 employee.getHourlyRate(),
+                employee.getSalaryRate(),
+                employee.getPayType(),
                 employee.getPtoBalanceHours()
         );
     }
