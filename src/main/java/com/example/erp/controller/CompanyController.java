@@ -2,6 +2,7 @@ package com.example.erp.controller;
 
 import com.example.erp.Dto.CompanyDto;
 import com.example.erp.Dto.CreateCompanyRequest;
+import com.example.erp.Dto.UpdateCompanyInfoRequest;
 import com.example.erp.Dto.UpdateCompanySettingsRequest;
 import com.example.erp.services.CompanyService;
 import jakarta.validation.Valid;
@@ -39,6 +40,14 @@ public class CompanyController {
             @RequestBody UpdateCompanySettingsRequest request
     ) {
         return ResponseEntity.ok(companyService.updateCompanySettings(id, request));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CompanyDto> updateCompanyInfo(
+            @PathVariable Long id,
+            @RequestBody UpdateCompanyInfoRequest request
+    ) {
+        return ResponseEntity.ok(companyService.updateCompanyInfo(id, request));
     }
 
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from "react-router-dom";
-import { fetchCompanyById, updateCompanySettings } from '../api/companyApi';
+import { fetchCompanyById, updateCompanySettings, updateCompanyInfo } from '../api/companyApi';
 import {
   fetchEmployees,
   createEmployee,
@@ -15,6 +15,18 @@ import {
 } from '../api/employeeApi';
 import MiniTimeGrid from '../components/MiniTimeGrid';
 
+// ── US States list ──
+const US_STATES = [
+  "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
+  "Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa",
+  "Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan",
+  "Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire",
+  "New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio",
+  "Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota",
+  "Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia",
+  "Wisconsin","Wyoming",
+];
+
 function CompaniesPage() {
   const { id } = useParams();
 
@@ -24,6 +36,19 @@ function CompaniesPage() {
   const [message, setMessage] = useState("");
 
   const [activeCompanyTab, setActiveCompanyTab] = useState("employees");
+
+  // Company info edit form
+  const [companyInfoForm, setCompanyInfoForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    streetAddress: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "United States",
+  });
 
   const [companySettingsForm, setCompanySettingsForm] = useState({
     payrollType: "WEEKLY",
@@ -46,31 +71,20 @@ function CompaniesPage() {
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [timeEntries, setTimeEntries] = useState([]);
-
   const [editingTimeEntryId, setEditingTimeEntryId] = useState(null);
-  const [timeForm, setTimeForm] = useState({
-    clockInTime: "",
-    clockOutTime: "",
-  });
+  const [timeForm, setTimeForm] = useState({ clockInTime: "", clockOutTime: "" });
 
   const [employeeForm, setEmployeeForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    jobTitle: "",
-    hireDate: "",
-    companyId: "",
-    payType: "HOURLY",
-    hourlyRate: "",
-    salaryRate: "",
-    ptoBalanceHours: "",
+    firstName: "", lastName: "", email: "", password: "",
+    jobTitle: "", hireDate: "", companyId: "",
+    payType: "HOURLY", hourlyRate: "", salaryRate: "", ptoBalanceHours: "",
   });
 
   const [ptoRequests, setPtoRequests] = useState([]);
   const [ptoReviewNotes, setPtoReviewNotes] = useState({});
   const [showPtoManager, setShowPtoManager] = useState(false);
 
+  // ── Load company ──
   useEffect(() => {
     async function loadCompany() {
       try {
@@ -82,6 +96,19 @@ function CompaniesPage() {
           payday: data.payday || "FRIDAY",
           biweeklyStartDate: data.biweeklyStartDate || "",
         });
+        // Pre-fill company info form from existing data
+        // address stored as "street, city, state zip" — we parse it or use raw fields if backend sends them separately
+        setCompanyInfoForm({
+          name: data.name || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          streetAddress: data.streetAddress || "",
+          addressLine2: data.addressLine2 || "",
+          city: data.city || "",
+          state: data.state || "",
+          zip: data.zip || "",
+          country: data.country || "United States",
+        });
       } catch (err) {
         setError(err.message || "Failed to load company");
       }
@@ -89,6 +116,7 @@ function CompaniesPage() {
     if (id) loadCompany();
   }, [id]);
 
+  // ── Load employees ──
   useEffect(() => {
     async function loadEmployees() {
       try {
@@ -111,6 +139,26 @@ function CompaniesPage() {
     setEditingTimeEntryId(null);
   }
 
+  // ── Company info handlers ──
+  function handleCompanyInfoChange(e) {
+    const { name, value } = e.target;
+    setCompanyInfoForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  async function handleSaveCompanyInfo(e) {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+    try {
+      const updated = await updateCompanyInfo(id, companyInfoForm);
+      setCompany(updated);
+      setMessage("Company info updated successfully.");
+    } catch (err) {
+      setError(err.message || "Failed to update company info");
+    }
+  }
+
+  // ── Company settings handlers ──
   function handleCompanySettingsChange(e) {
     const { name, value } = e.target;
     setCompanySettingsForm((prev) => ({ ...prev, [name]: value }));
@@ -134,6 +182,7 @@ function CompaniesPage() {
     }
   }
 
+  // ── PTO handlers ──
   async function handleManagePto() {
     try {
       setShowPtoManager(true);
@@ -149,10 +198,9 @@ function CompaniesPage() {
     }
   }
 
-  function handleClosePtoManager() {
-    setShowPtoManager(false);
-  }
+  function handleClosePtoManager() { setShowPtoManager(false); }
 
+  // ── Employee handlers ──
   function handleEmployeeChange(e) {
     const { name, value } = e.target;
     setEmployeeForm((prev) => ({ ...prev, [name]: value }));
@@ -166,17 +214,9 @@ function CompaniesPage() {
       const created = await createEmployee(employeeForm);
       setEmployees((prev) => [...prev, created]);
       setEmployeeForm({
-        firstName: "",
-        lastName: "",
-        email: "",
-        password: "",
-        jobTitle: "",
-        hireDate: "",
-        companyId: company.id,
-        payType: "HOURLY",
-        hourlyRate: "",
-        salaryRate: "",
-        ptoBalanceHours: "",
+        firstName: "", lastName: "", email: "", password: "",
+        jobTitle: "", hireDate: "", companyId: company.id,
+        payType: "HOURLY", hourlyRate: "", salaryRate: "", ptoBalanceHours: "",
       });
       setMessage("Employee added successfully.");
     } catch (err) {
@@ -216,17 +256,7 @@ function CompaniesPage() {
       const refreshedEmployees = await fetchEmployees(id);
       setEmployees(refreshedEmployees);
       setEditingEmployeeId(null);
-      setEditForm({
-        firstName: "",
-        lastName: "",
-        email: "",
-        jobTitle: "",
-        hireDate: "",
-        payType: "HOURLY",
-        hourlyRate: "",
-        salaryRate: "",
-        ptoBalanceHours: "",
-      });
+      setEditForm({ firstName: "", lastName: "", email: "", jobTitle: "", hireDate: "", payType: "HOURLY", hourlyRate: "", salaryRate: "", ptoBalanceHours: "" });
       setMessage("Employee updated successfully.");
     } catch (err) {
       setError(err.message || "Failed to update employee");
@@ -246,6 +276,7 @@ function CompaniesPage() {
     }
   }
 
+  // ── Time handlers ──
   async function handleManageTime(employeeId) {
     try {
       setSelectedEmployeeId(employeeId);
@@ -285,9 +316,7 @@ function CompaniesPage() {
         clockInTime: timeForm.clockInTime,
         clockOutTime: timeForm.clockOutTime || null,
       });
-      setTimeEntries((prev) =>
-        prev.map((entry) => (entry.id === updated.id ? updated : entry))
-      );
+      setTimeEntries((prev) => prev.map((entry) => (entry.id === updated.id ? updated : entry)));
       setEditingTimeEntryId(null);
       setTimeForm({ clockInTime: "", clockOutTime: "" });
     } catch (err) {
@@ -305,6 +334,7 @@ function CompaniesPage() {
     }
   }
 
+  // ── Payroll helpers ──
   function calculateHours(entry) {
     if (!entry.clockInTime || !entry.clockOutTime) return 0;
     const clockIn = new Date(entry.clockInTime);
@@ -317,7 +347,6 @@ function CompaniesPage() {
     const totalHours = entries.reduce((sum, entry) => sum + calculateHours(entry), 0);
     const regularHours = Math.min(totalHours, 40);
     const overtimeHours = Math.max(totalHours - 40, 0);
-
     if (employee.payType === "SALARY") {
       const annualSalary = Number(employee.salaryRate || 0);
       const period = getPayrollPeriod();
@@ -325,21 +354,13 @@ function CompaniesPage() {
       const grossPay = (annualSalary / 365) * days;
       return { totalHours, regularHours, overtimeHours: 0, grossPay };
     }
-
     const rate = Number(employee.hourlyRate || 0);
     const grossPay = regularHours * rate + overtimeHours * rate * 1.5;
     return { totalHours, regularHours, overtimeHours, grossPay };
   }
 
-  function toDateOnly(date) {
-    return date.toISOString().split("T")[0];
-  }
-
-  function addDays(date, days) {
-    const copy = new Date(date);
-    copy.setDate(copy.getDate() + days);
-    return copy;
-  }
+  function toDateOnly(date) { return date.toISOString().split("T")[0]; }
+  function addDays(date, days) { const copy = new Date(date); copy.setDate(copy.getDate() + days); return copy; }
 
   function getMostRecentWeekday(targetDayName) {
     const dayMap = { SUNDAY: 0, MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6 };
@@ -353,14 +374,11 @@ function CompaniesPage() {
   function getPayrollPeriod() {
     const payrollType = companySettingsForm.payrollType || "WEEKLY";
     if (payrollType === "BIWEEKLY") {
-      const start = companySettingsForm.biweeklyStartDate
-        ? new Date(`${companySettingsForm.biweeklyStartDate}T00:00:00`)
-        : new Date();
+      const start = companySettingsForm.biweeklyStartDate ? new Date(`${companySettingsForm.biweeklyStartDate}T00:00:00`) : new Date();
       const end = addDays(start, 13);
       return { start, end, startText: toDateOnly(start), endText: toDateOnly(end) };
     }
-    const payday = companySettingsForm.payday || "FRIDAY";
-    const paydayDate = getMostRecentWeekday(payday);
+    const paydayDate = getMostRecentWeekday(companySettingsForm.payday || "FRIDAY");
     const start = addDays(paydayDate, -6);
     return { start, end: paydayDate, startText: toDateOnly(start), endText: toDateOnly(paydayDate) };
   }
@@ -368,10 +386,8 @@ function CompaniesPage() {
   function isEntryInPayrollPeriod(entry, start, end) {
     if (!entry.clockInTime) return false;
     const entryDate = new Date(entry.clockInTime);
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date(start); startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(end); endDate.setHours(23, 59, 59, 999);
     return entryDate >= startDate && entryDate <= endDate;
   }
 
@@ -380,6 +396,7 @@ function CompaniesPage() {
     return entries.filter((entry) => isEntryInPayrollPeriod(entry, period.start, period.end));
   }
 
+  // ── PTO handlers ──
   function handlePtoNoteChange(requestId, value) {
     setPtoReviewNotes((prev) => ({ ...prev, [requestId]: value }));
   }
@@ -412,26 +429,18 @@ function CompaniesPage() {
     return "pto-status pto-status-pending";
   }
 
-  // ── Pay type checkbox helpers ──
+  // ── Pay type checkboxes ──
   function PayTypeCheckboxes({ payType, onChange }) {
     return (
       <div>
         <label style={{ marginBottom: 4, display: "block" }}>Pay Type</label>
         <div style={{ display: "flex", gap: 24, marginBottom: 12 }}>
           <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={payType === "HOURLY"}
-              onChange={() => onChange("HOURLY")}
-            />
+            <input type="checkbox" checked={payType === "HOURLY"} onChange={() => onChange("HOURLY")} />
             Hourly
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={payType === "SALARY"}
-              onChange={() => onChange("SALARY")}
-            />
+            <input type="checkbox" checked={payType === "SALARY"} onChange={() => onChange("SALARY")} />
             Salary
           </label>
         </div>
@@ -444,6 +453,11 @@ function CompaniesPage() {
 
   const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
 
+  // Build display address from either separate fields or legacy single field
+  const displayAddress = company.streetAddress
+    ? [company.streetAddress, company.addressLine2, company.city, company.state, company.zip, company.country].filter(Boolean).join(", ")
+    : company.address || "N/A";
+
   return (
     <div className="company-page">
       <div className="company-left">
@@ -451,19 +465,14 @@ function CompaniesPage() {
           <h1>{company.name}</h1>
           <p><strong>Email:</strong> {company.email}</p>
           <p><strong>Phone:</strong> {company.phone || "N/A"}</p>
-          <p><strong>Address:</strong> {company.address || "N/A"}</p>
+          <p><strong>Address:</strong> {displayAddress}</p>
           <hr />
 
           <div className="employee-tabs">
-            <button type="button" className={`employee-tab${activeCompanyTab === "employees" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("employees")}>
-              Employees
-            </button>
-            <button type="button" className={`employee-tab${activeCompanyTab === "management" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("management")}>
-              Employee Management
-            </button>
-            <button type="button" className={`employee-tab${activeCompanyTab === "settings" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("settings")}>
-              Company Settings
-            </button>
+            <button type="button" className={`employee-tab${activeCompanyTab === "employees" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("employees")}>Employees</button>
+            <button type="button" className={`employee-tab${activeCompanyTab === "management" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("management")}>Employee Management</button>
+            <button type="button" className={`employee-tab${activeCompanyTab === "companyInfo" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("companyInfo")}>Company Info</button>
+            <button type="button" className={`employee-tab${activeCompanyTab === "settings" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("settings")}>Company Settings</button>
           </div>
 
           {message && <p className="success-message">{message}</p>}
@@ -496,7 +505,6 @@ function CompaniesPage() {
                         </p>
                         <p>PTO Balance: {Number(employee.ptoBalanceHours || 0).toFixed(2)} hrs</p>
 
-                        {/* Edit employee form */}
                         {editingEmployeeId === employee.id && (
                           <>
                             <hr />
@@ -507,30 +515,14 @@ function CompaniesPage() {
                               <label>Email<input type="email" name="email" value={editForm.email} onChange={handleEditChange} /></label>
                               <label>Job Title<input type="text" name="jobTitle" value={editForm.jobTitle} onChange={handleEditChange} /></label>
                               <label>Hire Date<input type="date" name="hireDate" value={editForm.hireDate} onChange={handleEditChange} /></label>
-
-                              <PayTypeCheckboxes
-                                payType={editForm.payType}
-                                onChange={(type) => setEditForm((prev) => ({ ...prev, payType: type, hourlyRate: "", salaryRate: "" }))}
-                              />
-
+                              <PayTypeCheckboxes payType={editForm.payType} onChange={(type) => setEditForm((prev) => ({ ...prev, payType: type, hourlyRate: "", salaryRate: "" }))} />
                               {editForm.payType === "HOURLY" && (
-                                <label>
-                                  Hourly Rate ($/hr)
-                                  <input type="number" name="hourlyRate" value={editForm.hourlyRate} onChange={handleEditChange} min="0" step="0.01" placeholder="0.00" />
-                                </label>
+                                <label>Hourly Rate ($/hr)<input type="number" name="hourlyRate" value={editForm.hourlyRate} onChange={handleEditChange} min="0" step="0.01" placeholder="0.00" /></label>
                               )}
                               {editForm.payType === "SALARY" && (
-                                <label>
-                                  Annual Salary ($)
-                                  <input type="number" name="salaryRate" value={editForm.salaryRate} onChange={handleEditChange} min="0" step="0.01" placeholder="0.00" />
-                                </label>
+                                <label>Annual Salary ($)<input type="number" name="salaryRate" value={editForm.salaryRate} onChange={handleEditChange} min="0" step="0.01" placeholder="0.00" /></label>
                               )}
-
-                              <label>
-                                PTO Balance Hours
-                                <input type="number" name="ptoBalanceHours" value={editForm.ptoBalanceHours} onChange={handleEditChange} min="0" step="1" />
-                              </label>
-
+                              <label>PTO Balance Hours<input type="number" name="ptoBalanceHours" value={editForm.ptoBalanceHours} onChange={handleEditChange} min="0" step="1" /></label>
                               <div className="edit-buttons">
                                 <button type="submit">Save Changes</button>
                                 <button type="button" onClick={() => setEditingEmployeeId(null)}>Cancel</button>
@@ -554,16 +546,13 @@ function CompaniesPage() {
               )}
             </div>
 
-            {/* PTO manager */}
             {showPtoManager && (
               <div className="time-manager-panel">
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                   <h3 style={{ margin: 0 }}>PTO Requests</h3>
                   <button type="button" className="mini-btn mini-btn-cancel" onClick={handleClosePtoManager}>✕ Close</button>
                 </div>
-                {ptoRequests.length === 0 ? (
-                  <p>No PTO requests yet.</p>
-                ) : (
+                {ptoRequests.length === 0 ? <p>No PTO requests yet.</p> : (
                   <div className="pto-request-list">
                     {ptoRequests.map((request) => (
                       <div key={request.id} className="pto-request-card">
@@ -578,10 +567,7 @@ function CompaniesPage() {
                         {request.reviewNote && <p><strong>Manager Note:</strong> {request.reviewNote}</p>}
                         {request.status === "PENDING" && (
                           <>
-                            <label>
-                              Review Note
-                              <textarea value={ptoReviewNotes[request.id] || ""} onChange={(e) => handlePtoNoteChange(request.id, e.target.value)} rows="2" placeholder="Optional note..." />
-                            </label>
+                            <label>Review Note<textarea value={ptoReviewNotes[request.id] || ""} onChange={(e) => handlePtoNoteChange(request.id, e.target.value)} rows="2" placeholder="Optional note..." /></label>
                             <div className="edit-buttons">
                               <button type="button" onClick={() => handleApprovePto(request.id)}>Approve</button>
                               <button type="button" onClick={() => handleDenyPto(request.id)}>Deny</button>
@@ -595,14 +581,12 @@ function CompaniesPage() {
               </div>
             )}
 
-            {/* Time manager */}
             {selectedEmployeeId && selectedEmployee && (
               <div className="time-manager-panel">
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                   <h3 style={{ margin: 0 }}>Time Entries — {selectedEmployee.firstName} {selectedEmployee.lastName}</h3>
                   <button type="button" className="mini-btn mini-btn-cancel" onClick={handleCloseTimeManager}>✕ Close</button>
                 </div>
-
                 {editingTimeEntryId && (
                   <form onSubmit={handleUpdateTimeEntry} className="register-form time-edit-form">
                     <h4>Edit Entry</h4>
@@ -614,13 +598,9 @@ function CompaniesPage() {
                     </div>
                   </form>
                 )}
-
-                {timeEntries.length === 0 ? (
-                  <p>No time entries found.</p>
-                ) : (
+                {timeEntries.length === 0 ? <p>No time entries found.</p> : (
                   <>
                     <MiniTimeGrid timeEntries={timeEntries} onEdit={handleEditTimeClick} onDelete={handleDeleteTimeEntry} />
-
                     {(() => {
                       const period = getPayrollPeriod();
                       const payrollEntries = getPayrollEntries(timeEntries);
@@ -635,13 +615,8 @@ function CompaniesPage() {
                           <p><strong>Payday:</strong> {companySettingsForm.payday || "FRIDAY"}</p>
                           <p><strong>Total Hours:</strong> {payroll.totalHours.toFixed(2)}</p>
                           <p><strong>Regular Hours:</strong> {payroll.regularHours.toFixed(2)}</p>
-                          {selectedEmployee.payType !== "SALARY" && (
-                            <p><strong>Overtime Hours:</strong> {payroll.overtimeHours.toFixed(2)}</p>
-                          )}
-                          <p>
-                            <strong>
-                              {selectedEmployee.payType === "SALARY" ? "Annual Salary:" : "Hourly Rate:"}
-                            </strong>{" "}
+                          {selectedEmployee.payType !== "SALARY" && <p><strong>Overtime Hours:</strong> {payroll.overtimeHours.toFixed(2)}</p>}
+                          <p><strong>{selectedEmployee.payType === "SALARY" ? "Annual Salary:" : "Hourly Rate:"}</strong>{" "}
                             {selectedEmployee.payType === "SALARY"
                               ? `$${Number(selectedEmployee.salaryRate || 0).toLocaleString()}/yr`
                               : `$${Number(selectedEmployee.hourlyRate || 0).toFixed(2)}/hr`}
@@ -668,31 +643,71 @@ function CompaniesPage() {
               <label>Password<input type="password" name="password" value={employeeForm.password} onChange={handleEmployeeChange} required /></label>
               <label>Job Title<input type="text" name="jobTitle" value={employeeForm.jobTitle} onChange={handleEmployeeChange} /></label>
               <label>Hire Date<input type="date" name="hireDate" value={employeeForm.hireDate} onChange={handleEmployeeChange} /></label>
-
-              <PayTypeCheckboxes
-                payType={employeeForm.payType}
-                onChange={(type) => setEmployeeForm((prev) => ({ ...prev, payType: type, hourlyRate: "", salaryRate: "" }))}
-              />
-
+              <PayTypeCheckboxes payType={employeeForm.payType} onChange={(type) => setEmployeeForm((prev) => ({ ...prev, payType: type, hourlyRate: "", salaryRate: "" }))} />
               {employeeForm.payType === "HOURLY" && (
-                <label>
-                  Hourly Rate ($/hr)
-                  <input type="number" name="hourlyRate" value={employeeForm.hourlyRate} onChange={handleEmployeeChange} min="0" step="0.01" placeholder="0.00" />
-                </label>
+                <label>Hourly Rate ($/hr)<input type="number" name="hourlyRate" value={employeeForm.hourlyRate} onChange={handleEmployeeChange} min="0" step="0.01" placeholder="0.00" /></label>
               )}
               {employeeForm.payType === "SALARY" && (
-                <label>
-                  Annual Salary ($)
-                  <input type="number" name="salaryRate" value={employeeForm.salaryRate} onChange={handleEmployeeChange} min="0" step="0.01" placeholder="0.00" />
-                </label>
+                <label>Annual Salary ($)<input type="number" name="salaryRate" value={employeeForm.salaryRate} onChange={handleEmployeeChange} min="0" step="0.01" placeholder="0.00" /></label>
               )}
+              <label>PTO Balance Hours<input type="number" name="ptoBalanceHours" value={employeeForm.ptoBalanceHours} onChange={handleEmployeeChange} min="0" step="1" /></label>
+              <button type="submit">Add Employee</button>
+            </form>
+          </div>
+        )}
+
+        {/* ── Company Info tab ── */}
+        {activeCompanyTab === "companyInfo" && (
+          <div className="employees-card">
+            <h3>Edit Company Info</h3>
+            <form onSubmit={handleSaveCompanyInfo} className="register-form">
+              <label>Company Name<input type="text" name="name" value={companyInfoForm.name} onChange={handleCompanyInfoChange} required /></label>
+              <label>Email<input type="email" name="email" value={companyInfoForm.email} onChange={handleCompanyInfoChange} required /></label>
+              <label>Phone<input type="tel" name="phone" value={companyInfoForm.phone} onChange={handleCompanyInfoChange} /></label>
+
+              <hr />
+              <h4 style={{ margin: "8px 0 4px" }}>Address</h4>
 
               <label>
-                PTO Balance Hours
-                <input type="number" name="ptoBalanceHours" value={employeeForm.ptoBalanceHours} onChange={handleEmployeeChange} min="0" step="1" />
+                Street Address
+                <input type="text" name="streetAddress" value={companyInfoForm.streetAddress} onChange={handleCompanyInfoChange} placeholder="123 Main St" />
               </label>
 
-              <button type="submit">Add Employee</button>
+              <label>
+                Address Line 2
+                <input type="text" name="addressLine2" value={companyInfoForm.addressLine2} onChange={handleCompanyInfoChange} placeholder="Suite, Apt, Unit (optional)" />
+              </label>
+
+              {/* City + State side by side */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <label>
+                  City
+                  <input type="text" name="city" value={companyInfoForm.city} onChange={handleCompanyInfoChange} placeholder="City" />
+                </label>
+                <label>
+                  State / Province / Region
+                  <select name="state" value={companyInfoForm.state} onChange={handleCompanyInfoChange}>
+                    <option value="">Select state</option>
+                    {US_STATES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {/* ZIP + Country side by side */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <label>
+                  ZIP / Postal Code
+                  <input type="text" name="zip" value={companyInfoForm.zip} onChange={handleCompanyInfoChange} placeholder="12345" />
+                </label>
+                <label>
+                  Country
+                  <input type="text" name="country" value={companyInfoForm.country} onChange={handleCompanyInfoChange} placeholder="United States" />
+                </label>
+              </div>
+
+              <button type="submit">Save Company Info</button>
             </form>
           </div>
         )}
@@ -710,43 +725,29 @@ function CompaniesPage() {
                     <option value="BIWEEKLY">Bi-Weekly</option>
                   </select>
                 </label>
-
                 {companySettingsForm.payrollType === "WEEKLY" && (
                   <label>
                     Payday
                     <select name="payday" value={companySettingsForm.payday} onChange={handleCompanySettingsChange}>
-                      <option value="MONDAY">Monday</option>
-                      <option value="TUESDAY">Tuesday</option>
-                      <option value="WEDNESDAY">Wednesday</option>
-                      <option value="THURSDAY">Thursday</option>
-                      <option value="FRIDAY">Friday</option>
-                      <option value="SATURDAY">Saturday</option>
-                      <option value="SUNDAY">Sunday</option>
+                      {["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"].map((d) => (
+                        <option key={d} value={d}>{d.charAt(0) + d.slice(1).toLowerCase()}</option>
+                      ))}
                     </select>
                   </label>
                 )}
-
                 {companySettingsForm.payrollType === "BIWEEKLY" && (
                   <>
-                    <label>
-                      Pay Period Start Date
-                      <input type="date" name="biweeklyStartDate" value={companySettingsForm.biweeklyStartDate} onChange={handleCompanySettingsChange} required />
-                    </label>
+                    <label>Pay Period Start Date<input type="date" name="biweeklyStartDate" value={companySettingsForm.biweeklyStartDate} onChange={handleCompanySettingsChange} required /></label>
                     <label>
                       Payday
                       <select name="payday" value={companySettingsForm.payday} onChange={handleCompanySettingsChange}>
-                        <option value="MONDAY">Monday</option>
-                        <option value="TUESDAY">Tuesday</option>
-                        <option value="WEDNESDAY">Wednesday</option>
-                        <option value="THURSDAY">Thursday</option>
-                        <option value="FRIDAY">Friday</option>
-                        <option value="SATURDAY">Saturday</option>
-                        <option value="SUNDAY">Sunday</option>
+                        {["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"].map((d) => (
+                          <option key={d} value={d}>{d.charAt(0) + d.slice(1).toLowerCase()}</option>
+                        ))}
                       </select>
                     </label>
                   </>
                 )}
-
                 <button type="submit">Save Settings</button>
               </form>
             </div>
@@ -759,10 +760,7 @@ function CompaniesPage() {
                 {companySettingsForm.payrollType === "BIWEEKLY" && (
                   <p><strong>Bi-Weekly Start Date:</strong> {companySettingsForm.biweeklyStartDate || "Not set"}</p>
                 )}
-                {(() => {
-                  const period = getPayrollPeriod();
-                  return <p><strong>Current Pay Period:</strong> {period.startText} — {period.endText}</p>;
-                })()}
+                {(() => { const period = getPayrollPeriod(); return <p><strong>Current Pay Period:</strong> {period.startText} — {period.endText}</p>; })()}
               </div>
             </div>
           </>

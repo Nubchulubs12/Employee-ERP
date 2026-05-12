@@ -26,12 +26,46 @@ public class Company {
     private String payrollType;
     private String payday;
     private LocalDate biweeklyStartDate;
+    @Column(name = "streetAddress")
+    private String streetAddress;
+
+    @Column(name = "addressLine2")
+    private String addressLine2;
+
+    @Column(name = "city")
+    private String city;
+
+    @Column(name = "state")
+    private String state;
+
+    @Column(name = "zip")
+    private String zip;
+
+    @Column(name = "country")
+    private String country;
     public Company() {
     }
 
     public String getPayrollType() {
         return payrollType;
     }
+    public String getStreetAddress() { return streetAddress; }
+    public void setStreetAddress(String streetAddress) { this.streetAddress = streetAddress; }
+
+    public String getAddressLine2() { return addressLine2; }
+    public void setAddressLine2(String addressLine2) { this.addressLine2 = addressLine2; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+
+    public String getState() { return state; }
+    public void setState(String state) { this.state = state; }
+
+    public String getZip() { return zip; }
+    public void setZip(String zip) { this.zip = zip; }
+
+    public String getCountry() { return country; }
+    public void setCountry(String country) { this.country = country; }
 
     public void setPayrollType(String payrollType) {
         this.payrollType = payrollType;

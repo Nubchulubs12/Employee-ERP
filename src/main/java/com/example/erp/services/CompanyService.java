@@ -1,4 +1,5 @@
 package com.example.erp.services;
+import com.example.erp.Dto.UpdateCompanyInfoRequest;
 import com.example.erp.Dto.UpdateCompanySettingsRequest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.example.erp.Dto.CompanyDto;
@@ -58,6 +59,22 @@ public class CompanyService {
 
         return toDto(companyRepository.save(company));
     }
+    public CompanyDto updateCompanyInfo(Long id, UpdateCompanyInfoRequest request) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
+
+        company.setName(request.getName());
+        company.setEmail(request.getEmail());
+        company.setPhone(request.getPhone());
+        company.setStreetAddress(request.getStreetAddress());
+        company.setAddressLine2(request.getAddressLine2());
+        company.setCity(request.getCity());
+        company.setState(request.getState());
+        company.setZip(request.getZip());
+        company.setCountry(request.getCountry());
+
+        return toDto(companyRepository.save(company));
+    }
 
     private CompanyDto toDto(Company company) {
         return new CompanyDto(
@@ -66,6 +83,12 @@ public class CompanyService {
                 company.getEmail(),
                 company.getPhone(),
                 company.getAddress(),
+                company.getStreetAddress(),
+                company.getAddressLine2(),
+                company.getCity(),
+                company.getState(),
+                company.getZip(),
+                company.getCountry(),
                 company.getPayrollType(),
                 company.getPayday(),
                 company.getBiweeklyStartDate()
