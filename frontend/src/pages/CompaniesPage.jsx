@@ -15,7 +15,7 @@ import {
 } from '../api/employeeApi';
 import MiniTimeGrid from '../components/MiniTimeGrid';
 
-// ── US States list ──
+
 const US_STATES = [
   "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
   "Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa",
@@ -37,7 +37,7 @@ function CompaniesPage() {
 
   const [activeCompanyTab, setActiveCompanyTab] = useState("employees");
 
-  // Company info edit form
+
   const [companyInfoForm, setCompanyInfoForm] = useState({
     name: "",
     email: "",
@@ -84,7 +84,7 @@ function CompaniesPage() {
   const [ptoReviewNotes, setPtoReviewNotes] = useState({});
   const [showPtoManager, setShowPtoManager] = useState(false);
 
-  // ── Load company ──
+
   useEffect(() => {
     async function loadCompany() {
       try {
@@ -96,8 +96,7 @@ function CompaniesPage() {
           payday: data.payday || "FRIDAY",
           biweeklyStartDate: data.biweeklyStartDate || "",
         });
-        // Pre-fill company info form from existing data
-        // address stored as "street, city, state zip" — we parse it or use raw fields if backend sends them separately
+
         setCompanyInfoForm({
           name: data.name || "",
           email: data.email || "",
@@ -116,7 +115,7 @@ function CompaniesPage() {
     if (id) loadCompany();
   }, [id]);
 
-  // ── Load employees ──
+
   useEffect(() => {
     async function loadEmployees() {
       try {
@@ -139,7 +138,7 @@ function CompaniesPage() {
     setEditingTimeEntryId(null);
   }
 
-  // ── Company info handlers ──
+
   function handleCompanyInfoChange(e) {
     const { name, value } = e.target;
     setCompanyInfoForm((prev) => ({ ...prev, [name]: value }));
@@ -158,7 +157,7 @@ function CompaniesPage() {
     }
   }
 
-  // ── Company settings handlers ──
+
   function handleCompanySettingsChange(e) {
     const { name, value } = e.target;
     setCompanySettingsForm((prev) => ({ ...prev, [name]: value }));
@@ -182,7 +181,7 @@ function CompaniesPage() {
     }
   }
 
-  // ── PTO handlers ──
+
   async function handleManagePto() {
     try {
       setShowPtoManager(true);
@@ -200,7 +199,7 @@ function CompaniesPage() {
 
   function handleClosePtoManager() { setShowPtoManager(false); }
 
-  // ── Employee handlers ──
+
   function handleEmployeeChange(e) {
     const { name, value } = e.target;
     setEmployeeForm((prev) => ({ ...prev, [name]: value }));
@@ -276,7 +275,7 @@ function CompaniesPage() {
     }
   }
 
-  // ── Time handlers ──
+
   async function handleManageTime(employeeId) {
     try {
       setSelectedEmployeeId(employeeId);
@@ -334,7 +333,7 @@ function CompaniesPage() {
     }
   }
 
-  // ── Payroll helpers ──
+
   function calculateHours(entry) {
     if (!entry.clockInTime || !entry.clockOutTime) return 0;
     const clockIn = new Date(entry.clockInTime);
@@ -396,7 +395,7 @@ function CompaniesPage() {
     return entries.filter((entry) => isEntryInPayrollPeriod(entry, period.start, period.end));
   }
 
-  // ── PTO handlers ──
+
   function handlePtoNoteChange(requestId, value) {
     setPtoReviewNotes((prev) => ({ ...prev, [requestId]: value }));
   }
@@ -429,7 +428,7 @@ function CompaniesPage() {
     return "pto-status pto-status-pending";
   }
 
-  // ── Pay type checkboxes ──
+
   function PayTypeCheckboxes({ payType, onChange }) {
     return (
       <div>
@@ -453,7 +452,7 @@ function CompaniesPage() {
 
   const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
 
-  // Build display address from either separate fields or legacy single field
+
   const displayAddress = company.streetAddress
     ? [company.streetAddress, company.addressLine2, company.city, company.state, company.zip, company.country].filter(Boolean).join(", ")
     : company.address || "N/A";
@@ -482,7 +481,7 @@ function CompaniesPage() {
 
       <div className="company-right">
 
-        {/* ── Employees tab ── */}
+
         {activeCompanyTab === "employees" && (
           <>
             <div className="employees-card">
@@ -632,7 +631,7 @@ function CompaniesPage() {
           </>
         )}
 
-        {/* ── Employee Management tab ── */}
+
         {activeCompanyTab === "management" && (
           <div className="employees-card">
             <h3>Add Employee</h3>
@@ -656,7 +655,7 @@ function CompaniesPage() {
           </div>
         )}
 
-        {/* ── Company Info tab ── */}
+
         {activeCompanyTab === "companyInfo" && (
           <div className="employees-card">
             <h3>Edit Company Info</h3>
@@ -678,7 +677,7 @@ function CompaniesPage() {
                 <input type="text" name="addressLine2" value={companyInfoForm.addressLine2} onChange={handleCompanyInfoChange} placeholder="Suite, Apt, Unit (optional)" />
               </label>
 
-              {/* City + State side by side */}
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <label>
                   City
@@ -695,7 +694,7 @@ function CompaniesPage() {
                 </label>
               </div>
 
-              {/* ZIP + Country side by side */}
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <label>
                   ZIP / Postal Code
@@ -712,7 +711,7 @@ function CompaniesPage() {
           </div>
         )}
 
-        {/* ── Settings tab ── */}
+
         {activeCompanyTab === "settings" && (
           <>
             <div className="employees-card">

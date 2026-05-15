@@ -2,28 +2,29 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../api/authApi";
 
-function Login() {
+function Login({ defaultType = "employee" }) {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-useEffect(() => {
-  fetch(`${import.meta.env.VITE_API_BASE_URL}/api/health`).catch(() => {});
-}, []);
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/health`).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      const user = JSON.parse(raw);
+      if (user.userType === "employee") navigate(`/employees/${user.id}`, { replace: true });
+      else if (user.userType === "company") navigate(`/companies/${user.companyId}`, { replace: true });
+    }
+  }, []);
 
   function handleChange(e) {
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   }
 
   async function handleSubmit(e) {
@@ -32,20 +33,24 @@ useEffect(() => {
     setLoading(true);
 
     try {
-      const user = await loginUser(formData);
+      const user = await loginUser({ ...formData, userType: defaultType });
 
+      if (user.userType !== defaultType) {
+        setError(
+          defaultType === "employee"
+            ? "This account is a company account. Please use Company Login."
+            : "This account is an employee account. Please use Employee Login."
+        );
+        return;
+      }
 
       localStorage.setItem("user", JSON.stringify(user));
 
-
       if (user.userType === "company") {
-          console.log("logged in user: ",user)
         navigate(`/companies/${user.companyId}`);
-      } else if (user.userType === "employee") {
-          console.log("logged in user: ",user);
+      } else {
         navigate(`/employees/${user.id}`);
       }
-
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {
@@ -56,31 +61,17 @@ useEffect(() => {
   return (
     <div className="register-page">
       <div className="register-card">
-        <h1>Login</h1>
+        <h1>{defaultType === "employee" ? "Employee Login" : "Company Login"}</h1>
 
         <form onSubmit={handleSubmit} className="register-form">
           <label>
             Email
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
+            <input type="email" name="email" value={formData.email} onChange={handleChange} required />
           </label>
-
           <label>
             Password
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
+            <input type="password" name="password" value={formData.password} onChange={handleChange} required />
           </label>
-
           <button type="submit" disabled={loading}>
             {loading ? "Logging in..." : "Login"}
           </button>

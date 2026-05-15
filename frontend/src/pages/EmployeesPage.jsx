@@ -209,6 +209,14 @@ function EmployeesPage() {
           <strong>Company:</strong> {employee.companyName || "N/A"}
         </p>
 
+       <p>
+           <strong>
+           Compensation:</strong>{" "}
+           {employee.payType === "SALARY"
+                                   ? `$${Number(employee.salaryRate || 0).toLocaleString()}/yr (Salary)`
+                                   : `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr (Hourly)`}
+        </p>
+
         <div className="employee-tabs">
           <button
             type="button"
