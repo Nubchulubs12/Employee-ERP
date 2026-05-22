@@ -53,7 +53,7 @@ export async function updateCompanySettings(id, settings) {
   return data;
 }
 
-// Updates company name, email, phone, and address fields
+
 export async function updateCompanyInfo(id, info) {
   const response = await fetch(`${BASE_URL}/${id}`, {
     method: "PUT",

@@ -107,6 +107,7 @@ public class PtoRequestService {
         return toDto(ptoRequestRepository.save(pto));
     }
 
+
     public PtoRequestDto denyRequest(Long requestId, ReviewPtoRequest request) {
         PtoRequest pto = getRequestEntity(requestId);
 

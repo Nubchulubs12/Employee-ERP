@@ -75,13 +75,11 @@ function formatHourLabel(hour) {
 
 function calculateHours(clockInTime, clockOutTime) {
   if (!clockInTime || !clockOutTime) return 0;
-
   if (clockInTime.includes("T") && clockOutTime.includes("T")) {
     const diffMs = new Date(clockOutTime) - new Date(clockInTime);
     if (diffMs <= 0) return 0;
     return diffMs / 1000 / 60 / 60;
   }
-
   const start = timeToMinutes(clockInTime);
   const end = timeToMinutes(clockOutTime);
   if (start === null || end === null || end <= start) return 0;
@@ -126,6 +124,11 @@ function getEntryDateKey(entry) {
 function getDisplayEntries(timeEntries) {
   const segments = [];
   for (const entry of timeEntries) {
+
+    if (entry.isPto) {
+      segments.push({ ...entry, _segmentDateKey: getEntryDateKey(entry) });
+      continue;
+    }
     if (!entry.clockInTime || !entry.clockOutTime) {
       segments.push({ ...entry, _segmentDateKey: getEntryDateKey(entry) });
       continue;
@@ -223,7 +226,6 @@ export default function TimeSheetGrid({ timeEntries = [] }) {
   return (
     <div className="timesheet-wrapper">
       <div className="timesheet-grid">
-
         <div
           className="timesheet-time-column"
           style={{ visibility: "hidden", pointerEvents: "none", flexShrink: 0 }}
@@ -231,50 +233,25 @@ export default function TimeSheetGrid({ timeEntries = [] }) {
           <div className="timesheet-header-cell" />
         </div>
 
-
         <div
           style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            padding: "6px 0",
-            borderBottom: "1px solid #e0e0e0",
+            flex: 1, display: "flex", alignItems: "center",
+            justifyContent: "center", gap: "8px",
+            padding: "6px 0", borderBottom: "1px solid #e0e0e0",
           }}
         >
-          <button
-            style={navBtnStyle}
-            onClick={() => setWeekOffset((o) => o - 1)}
-            aria-label="Previous week"
-          >
-            ‹
-          </button>
+          <button style={navBtnStyle} onClick={() => setWeekOffset((o) => o - 1)} aria-label="Previous week">‹</button>
 
           <span style={{ fontWeight: 600, fontSize: "0.95rem", minWidth: "210px", textAlign: "center" }}>
             {isCurrentWeek ? "Current Week" : formatWeekLabel(weekStart)}
           </span>
 
-          <button
-            style={navBtnStyle}
-            onClick={() => setWeekOffset((o) => o + 1)}
-            aria-label="Next week"
-          >
-            ›
-          </button>
+          <button style={navBtnStyle} onClick={() => setWeekOffset((o) => o + 1)} aria-label="Next week">›</button>
 
           {!isCurrentWeek && (
             <button
               onClick={() => setWeekOffset(0)}
-              style={{
-                fontSize: "0.78rem",
-                padding: "2px 10px",
-                border: "1px solid #bbb",
-                borderRadius: "4px",
-                cursor: "pointer",
-                background: "none",
-                color: "#000",
-              }}
+              style={{ fontSize: "0.78rem", padding: "2px 10px", border: "1px solid #bbb", borderRadius: "4px", cursor: "pointer", background: "none", color: "#000" }}
             >
               Today
             </button>
@@ -289,11 +266,7 @@ export default function TimeSheetGrid({ timeEntries = [] }) {
           {Array.from({ length: END_HOUR - START_HOUR }, (_, index) => {
             const hour = START_HOUR + index;
             return (
-              <div
-                key={hour}
-                className="timesheet-time-label"
-                style={{ height: `${HOUR_HEIGHT}px` }}
-              >
+              <div key={hour} className="timesheet-time-label" style={{ height: `${HOUR_HEIGHT}px` }}>
                 {formatHourLabel(hour)}
               </div>
             );
@@ -310,53 +283,41 @@ export default function TimeSheetGrid({ timeEntries = [] }) {
 
             return (
               <div key={day.dateKey} className="timesheet-day-column">
-                <div
-                  className={`timesheet-day-header ${
-                    day.isToday ? "today-header" : ""
-                  }`}
-                >
+                <div className={`timesheet-day-header ${day.isToday ? "today-header" : ""}`}>
                   {day.label}
                 </div>
 
-                <div
-                  className="timesheet-day-body"
-                  style={{ height: `${totalGridHeight}px` }}
-                >
+                <div className="timesheet-day-body" style={{ height: `${totalGridHeight}px` }}>
                   {Array.from({ length: END_HOUR - START_HOUR }, (_, index) => (
-                    <div
-                      key={index}
-                      className="timesheet-hour-row"
-                      style={{ height: `${HOUR_HEIGHT}px` }}
-                    />
+                    <div key={index} className="timesheet-hour-row" style={{ height: `${HOUR_HEIGHT}px` }} />
                   ))}
 
                   {dayEntries.map((entry) => {
-                    const hoursWorked = calculateHours(
-                      entry.clockInTime,
-                      entry.clockOutTime
-                    );
+                    const hoursWorked = calculateHours(entry.clockInTime, entry.clockOutTime);
 
                     return (
                       <div
                         key={entry.id}
-                        className={`timesheet-entry${
-                          entry._isSplit ? " timesheet-entry--split" : ""
-                        }`}
+                        className={`timesheet-entry${entry._isSplit ? " timesheet-entry--split" : ""}${entry.isPto ? " timesheet-entry--pto" : ""}`}
                         style={getEntryStyle(entry)}
                       >
                         <div className="timesheet-entry-time">
-                          {entry._splitType === "start"
+                          {entry.isPto
+                            ? "🏖 PTO"
+                            : entry._splitType === "start"
                             ? `${formatTime(entry.clockInTime)} – –`
                             : entry._splitType === "end"
                             ? `– – ${formatTime(entry.clockOutTime)}`
-                            : `${formatTime(entry.clockInTime)} – ${
-                                entry.clockOutTime
-                                  ? formatTime(entry.clockOutTime)
-                                  : "Still in"
-                              }`}
+                            : `${formatTime(entry.clockInTime)} – ${entry.clockOutTime ? formatTime(entry.clockOutTime) : "Still in"}`}
                         </div>
 
-                        {entry.clockOutTime && (
+                        {entry.clockOutTime && !entry.isPto && (
+                          <div className="timesheet-entry-hours">
+                            {hoursWorked.toFixed(2)} hrs
+                          </div>
+                        )}
+
+                        {entry.isPto && (
                           <div className="timesheet-entry-hours">
                             {hoursWorked.toFixed(2)} hrs
                           </div>

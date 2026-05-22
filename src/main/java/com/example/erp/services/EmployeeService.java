@@ -1,9 +1,6 @@
 package com.example.erp.services;
 
-import com.example.erp.Dto.ChangePasswordRequest;
-import com.example.erp.Dto.CreateEmployeeRequest;
-import com.example.erp.Dto.EmployeeDto;
-import com.example.erp.Dto.UpdateEmployeeRequest;
+import com.example.erp.Dto.*;
 import com.example.erp.models.Company;
 import com.example.erp.models.Employee;
 import com.example.erp.data.EmployeeRepository;
@@ -78,6 +75,22 @@ public class EmployeeService {
 
         return toDto(employeeRepository.save(employee));
     }
+    public EmployeeDto updateEmployeeProfile(Long id, UpdateEmployeeProfileRequest request) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+
+        employee.setPhone(request.getPhone());
+        employee.setStreetAddress(request.getStreetAddress());
+        employee.setAddressLine2(request.getAddressLine2());
+        employee.setCity(request.getCity());
+        employee.setState(request.getState());
+        employee.setZip(request.getZip());
+        employee.setCountry(request.getCountry());
+        employee.setEmergencyContact(request.getEmergencyContact());
+        employee.setEmergencyPhone(request.getEmergencyPhone());
+
+        return toDto(employeeRepository.save(employee));
+    }
 
     public void deleteEmployee(Long id) {
         if (!employeeRepository.existsById(id)) {
@@ -122,7 +135,16 @@ public class EmployeeService {
                 employee.getHourlyRate(),
                 employee.getSalaryRate(),
                 employee.getPayType(),
-                employee.getPtoBalanceHours()
+                employee.getPtoBalanceHours(),
+                employee.getPhone(),
+                employee.getStreetAddress(),
+                employee.getAddressLine2(),
+                employee.getCity(),
+                employee.getState(),
+                employee.getZip(),
+                employee.getCountry(),
+                employee.getEmergencyContact(),
+                employee.getEmergencyPhone()
         );
     }
 }

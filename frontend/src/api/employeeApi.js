@@ -328,3 +328,24 @@ export async function fetchEmployeeById(id) {
 
   return data;
 }
+export async function updateEmployeeProfile(id, profileData) {
+  const response = await fetch(`${BASE_URL}/${id}/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(profileData),
+  });
+
+  const text = await response.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to update profile");
+  }
+
+  return data;
+}

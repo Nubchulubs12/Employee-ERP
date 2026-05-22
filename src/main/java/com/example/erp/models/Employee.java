@@ -24,13 +24,32 @@ private String email;
 
 @Column(nullable = false)
 private String pwHash;
-private String jobTitle;
-private LocalDate hireDate;
-private BigDecimal hourlyRate;
-private BigDecimal ptoBalanceHours;
-
+    @Column(name = "jobTitle")
+    private String jobTitle;
+    @Column(name = "hireDate")
+    private LocalDate hireDate;
+    @Column(name = "hourlyRate")
+    private BigDecimal hourlyRate;
+    @Column(name = "ptoBalanceHours")
+    private BigDecimal ptoBalanceHours;
+    @Column(name = "payType")
     private String payType;
+    @Column(name = "salaryRate")
     private BigDecimal salaryRate;
+
+private String phone;
+    @Column(name = "streetAddress")
+    private String streetAddress;
+    @Column(name = "addressLine2")
+    private String addressLine2;
+private String city;
+private String state;
+private String zip;
+private String country;
+    @Column(name = "emergencyContact")
+    private String emergencyContact;
+    @Column(name = "emergencyPhone")
+    private String emergencyPhone;
 
 @ManyToOne(fetch = FetchType.EAGER, optional = false)
 @JoinColumn(name = "company_id", nullable = false)
@@ -38,6 +57,78 @@ private Company company;
 
     public String getPayType() {
         return payType;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getStreetAddress() {
+        return streetAddress;
+    }
+
+    public void setStreetAddress(String streetAddress) {
+        this.streetAddress = streetAddress;
+    }
+
+    public String getAddressLine2() {
+        return addressLine2;
+    }
+
+    public void setAddressLine2(String addressLine2) {
+        this.addressLine2 = addressLine2;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getZip() {
+        return zip;
+    }
+
+    public void setZip(String zip) {
+        this.zip = zip;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public String getEmergencyContact() {
+        return emergencyContact;
+    }
+
+    public void setEmergencyContact(String emergencyContact) {
+        this.emergencyContact = emergencyContact;
+    }
+
+    public String getEmergencyPhone() {
+        return emergencyPhone;
+    }
+
+    public void setEmergencyPhone(String emergencyPhone) {
+        this.emergencyPhone = emergencyPhone;
     }
 
     public void setPayType(String payType) {

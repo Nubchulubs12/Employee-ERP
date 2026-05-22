@@ -916,3 +916,15 @@
   width: 100%;
   resize: vertical;
 }
+
+
+.mini-grid-entry--pto {
+  background: #10b981;
+  border-color: #059669;
+  color: white;
+}
+
+.mini-grid-entry--pto .mini-grid-entry-hrs {
+  color: white;
+}
+

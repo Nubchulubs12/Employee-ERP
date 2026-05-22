@@ -1,8 +1,5 @@
 package com.example.erp.controller;
-import com.example.erp.Dto.ChangePasswordRequest;
-import com.example.erp.Dto.CreateEmployeeRequest;
-import com.example.erp.Dto.EmployeeDto;
-import com.example.erp.Dto.UpdateEmployeeRequest;
+import com.example.erp.Dto.*;
 import com.example.erp.services.EmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -40,7 +37,13 @@ public class EmployeeController {
         employeeService.changePassword(id, request);
         return ResponseEntity.ok("Password update successfully");
     }
-
+    @PutMapping("/{id}/profile")
+    public ResponseEntity<EmployeeDto> updateEmployeeProfile(
+            @PathVariable Long id,
+            @RequestBody UpdateEmployeeProfileRequest request
+    ) {
+        return ResponseEntity.ok(employeeService.updateEmployeeProfile(id, request));
+    }
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeDto> getEmployeeById(@PathVariable Long id) {
         return ResponseEntity.ok(employeeService.getEmployeeById(id));
