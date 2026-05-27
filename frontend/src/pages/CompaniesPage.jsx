@@ -14,6 +14,7 @@ import {
   denyPtoRequest,
 } from '../api/employeeApi';
 import MiniTimeGrid from '../components/MiniTimeGrid';
+import DocumentsPanel from '../components/DocumentsPanel';
 
 const US_STATES = [
   "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
@@ -59,6 +60,7 @@ function CompaniesPage() {
     firstName: "",
     lastName: "",
     email: "",
+    newPassword: "",
     jobTitle: "",
     hireDate: "",
     payType: "HOURLY",
@@ -291,6 +293,7 @@ function CompaniesPage() {
         firstName: "",
         lastName: "",
         email: "",
+        newPassword: "" ,
         jobTitle: "",
         hireDate: "",
         payType: "HOURLY",
@@ -711,6 +714,10 @@ function CompaniesPage() {
             >
               Company Settings
             </button>
+
+            <button type="button" className={`employee-tab${activeCompanyTab === "documents" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("documents")}>
+              Documents
+            </button>
           </div>
 
           {message && <p className="success-message">{message}</p>}
@@ -780,6 +787,17 @@ function CompaniesPage() {
                                   name="email"
                                   value={editForm.email}
                                   onChange={handleEditChange}
+                                />
+                              </label>
+
+                              <label>
+                                New Password
+                                <input
+                                  type="password"
+                                  name="newPassword"
+                                  value={editForm.newPassword}
+                                  onChange={handleEditChange}
+                                  placeholder="Leave blank to keep current password"
                                 />
                               </label>
 
@@ -1470,6 +1488,9 @@ function CompaniesPage() {
             </div>
           </>
         )}
+    {activeCompanyTab === "documents" && (
+      <DocumentsPanel companyId={id} canUpload={true} />
+    )}
       </div>
     </div>
   );

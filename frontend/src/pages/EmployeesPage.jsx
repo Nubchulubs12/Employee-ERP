@@ -12,6 +12,7 @@ import {
   updateEmployeeProfile,
 } from "../api/employeeApi";
 import { fetchCompanyById } from "../api/companyApi";
+import DocumentsPanel from '../components/DocumentsPanel';
 
 const US_STATES = [
   "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
@@ -328,6 +329,9 @@ function EmployeesPage() {
           <button type="button" className={`employee-tab${activeTab === "pto" ? " employee-tab--active" : ""}`} onClick={() => handleTabChange("pto")}>Request PTO</button>
           <button type="button" className={`employee-tab${activeTab === "profile" ? " employee-tab--active" : ""}`} onClick={() => handleTabChange("profile")}>Edit Profile</button>
           <button type="button" className={`employee-tab${activeTab === "password" ? " employee-tab--active" : ""}`} onClick={() => handleTabChange("password")}>Change Password</button>
+          <button type="button" className={`employee-tab${activeTab === "documents" ? " employee-tab--active" : ""}`} onClick={() => handleTabChange("documents")}>
+            Documents
+          </button>
         </div>
       </div>
 
@@ -502,6 +506,9 @@ function EmployeesPage() {
             </form>
           </div>
         )}
+    {activeTab === "documents" && (
+      <DocumentsPanel companyId={employee.companyId} canUpload={false} />
+    )}
       </div>
     </div>
   );

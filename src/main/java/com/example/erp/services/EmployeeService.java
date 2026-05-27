@@ -73,6 +73,10 @@ public class EmployeeService {
         employee.setSalaryRate(request.getSalaryRate());
         employee.setPtoBalanceHours(request.getPtoBalanceHours() == null ? BigDecimal.ZERO : request.getPtoBalanceHours());
 
+        if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
+            employee.setPwHash(passwordEncoder.encode(request.getNewPassword()));
+        }
+
         return toDto(employeeRepository.save(employee));
     }
     public EmployeeDto updateEmployeeProfile(Long id, UpdateEmployeeProfileRequest request) {
@@ -88,6 +92,7 @@ public class EmployeeService {
         employee.setCountry(request.getCountry());
         employee.setEmergencyContact(request.getEmergencyContact());
         employee.setEmergencyPhone(request.getEmergencyPhone());
+
 
         return toDto(employeeRepository.save(employee));
     }

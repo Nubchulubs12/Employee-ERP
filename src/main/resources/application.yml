@@ -6,6 +6,11 @@ spring:
       password: ${DB_PASSWORD:Bubbleman12}
       driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
+      servlet:
+        multipart:
+          max-file-size: 10MB
+          max-request-size: 10MB
+
       jpa:
         hibernate:
           ddl-auto: create

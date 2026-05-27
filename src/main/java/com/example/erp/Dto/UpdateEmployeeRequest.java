@@ -35,11 +35,20 @@ public class UpdateEmployeeRequest {
     private String country;
     private String emergencyContact;
     private String emergencyPhone;
+    private String newPassword;
     @NotNull
     private Long companyId;
 
     public String getPhone() {
         return phone;
+    }
+
+    public String getNewPassword() {
+        return newPassword;
+    }
+
+    public void setNewPassword(String newPassword) {
+        this.newPassword = newPassword;
     }
 
     public void setPhone(String phone) {
