@@ -1,9 +1,6 @@
 package com.example.erp.services;
-import com.example.erp.Dto.UpdateCompanyInfoRequest;
-import com.example.erp.Dto.UpdateCompanySettingsRequest;
+import com.example.erp.Dto.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import com.example.erp.Dto.CompanyDto;
-import com.example.erp.Dto.CreateCompanyRequest;
 import com.example.erp.models.Company;
 import com.example.erp.data.CompanyRepository;
 import org.springframework.stereotype.Service;
@@ -74,6 +71,21 @@ public class CompanyService {
         company.setCountry(request.getCountry());
 
         return toDto(companyRepository.save(company));
+    }
+    public void changePassword(Long id, ChangePasswordRequest request) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), company.getPwHash())) {
+            throw new RuntimeException("Current password is incorrect.");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("New passwords do not match.");
+        }
+
+        company.setPwHash(passwordEncoder.encode(request.getNewPassword()));
+        companyRepository.save(company);
     }
 
     private CompanyDto toDto(Company company) {

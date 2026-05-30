@@ -1,9 +1,6 @@
 package com.example.erp.controller;
 
-import com.example.erp.Dto.CompanyDto;
-import com.example.erp.Dto.CreateCompanyRequest;
-import com.example.erp.Dto.UpdateCompanyInfoRequest;
-import com.example.erp.Dto.UpdateCompanySettingsRequest;
+import com.example.erp.Dto.*;
 import com.example.erp.services.CompanyService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +45,15 @@ public class CompanyController {
             @RequestBody UpdateCompanyInfoRequest request
     ) {
         return ResponseEntity.ok(companyService.updateCompanyInfo(id, request));
+    }
+
+    @PutMapping("/{id}/change-password")
+    public ResponseEntity<Void> changePassword(
+            @PathVariable Long id,
+            @RequestBody ChangePasswordRequest request
+    ) {
+        companyService.changePassword(id, request);
+        return ResponseEntity.noContent().build();
     }
 
 }

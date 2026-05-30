@@ -72,3 +72,22 @@ export async function updateCompanyInfo(id, info) {
   }
   return data;
 }
+
+export async function changeCompanyPassword(id, passwordData) {
+  const response = await fetch(`${BASE_URL}/${id}/change-password`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(passwordData),
+  });
+  const text = await response.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to change password");
+  }
+  return data;
+}

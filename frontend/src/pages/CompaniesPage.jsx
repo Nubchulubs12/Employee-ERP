@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from "react-router-dom";
-import { fetchCompanyById, updateCompanySettings, updateCompanyInfo } from '../api/companyApi';
+import { fetchCompanyById, updateCompanySettings, updateCompanyInfo, changeCompanyPassword } from '../api/companyApi';
 import {
   fetchEmployees,
   createEmployee,
@@ -26,6 +26,7 @@ const US_STATES = [
   "Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia",
   "Wisconsin","Wyoming",
 ];
+
 
 function CompaniesPage() {
   const { id } = useParams();
@@ -92,6 +93,13 @@ function CompaniesPage() {
   const [ptoRequests, setPtoRequests] = useState([]);
   const [ptoReviewNotes, setPtoReviewNotes] = useState({});
   const [showPtoManager, setShowPtoManager] = useState(false);
+
+  const [companyPasswordForm, setCompanyPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   useEffect(() => {
     async function loadCompany() {
@@ -192,6 +200,27 @@ function CompaniesPage() {
       setMessage("Company settings saved successfully.");
     } catch (err) {
       setError(err.message || "Failed to save company settings");
+    }
+  }
+
+  function handleCompanyPasswordChange(e) {
+    const { name, value } = e.target;
+    setCompanyPasswordForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  async function handleChangeCompanyPassword(e) {
+    e.preventDefault();
+    setError(""); setMessage("");
+    if (companyPasswordForm.newPassword !== companyPasswordForm.confirmPassword) {
+      setError("New passwords do not match.");
+      return;
+    }
+    try {
+      await changeCompanyPassword(id, companyPasswordForm);
+      setCompanyPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setMessage("Password updated successfully.");
+    } catch (err) {
+      setError(err.message || "Failed to update password");
     }
   }
 
@@ -619,6 +648,15 @@ function CompaniesPage() {
     }
   }
 
+  const filteredEmployees = employees.filter((emp) => {
+    const search = employeeSearch.toLowerCase();
+    return (
+      `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(search) ||
+      emp.email.toLowerCase().includes(search) ||
+      (emp.jobTitle || "").toLowerCase().includes(search)
+    );
+  });
+
   function getStatusClass(status) {
     if (status === "APPROVED") return "pto-status pto-status-approved";
     if (status === "DENIED") return "pto-status pto-status-denied";
@@ -715,6 +753,14 @@ function CompaniesPage() {
               Company Settings
             </button>
 
+            <button
+              type="button"
+              className={`employee-tab${activeCompanyTab === "password" ? " employee-tab--active" : ""}`}
+              onClick={() => handleCompanyTabChange("password")}
+            >
+              Change Password
+            </button>
+
             <button type="button" className={`employee-tab${activeCompanyTab === "documents" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("documents")}>
               Documents
             </button>
@@ -729,13 +775,35 @@ function CompaniesPage() {
         {activeCompanyTab === "employees" && (
           <>
             <div className="employees-card">
-              <h3>Employees</h3>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <h3 style={{ margin: 0 }}>
+                  Employees <span style={{ fontSize: "0.85rem", color: "#6b7280", fontWeight: 400 }}>({employees.length})</span>
+                </h3>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Search by name, email, or job title..."
+                value={employeeSearch}
+                onChange={(e) => setEmployeeSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 6,
+                  fontSize: "0.9rem",
+                  marginBottom: 16,
+                  boxSizing: "border-box",
+                }}
+              />
 
               {employees.length === 0 ? (
                 <p>No employees added yet.</p>
+              ) : filteredEmployees.length === 0 ? (
+                <p>No employees match your search.</p>
               ) : (
                 <ul className="employee-list">
-                  {employees.map((employee) => (
+                  {filteredEmployees.map((employee) => (
                     <li key={employee.id} className="employee-item">
                       <div className="employee-info">
                         <strong>{employee.firstName} {employee.lastName}</strong>
@@ -1491,6 +1559,28 @@ function CompaniesPage() {
     {activeCompanyTab === "documents" && (
       <DocumentsPanel companyId={id} canUpload={true} />
     )}
+{activeCompanyTab === "password" && (
+  <div className="employees-card">
+    <h2>Change Password</h2>
+    {error && <p className="error-message">{error}</p>}
+    {message && <p className="success-message">{message}</p>}
+    <form onSubmit={handleChangeCompanyPassword} className="register-form">
+      <label>
+        Current Password
+        <input type="password" name="currentPassword" value={companyPasswordForm.currentPassword} onChange={handleCompanyPasswordChange} required />
+      </label>
+      <label>
+        New Password
+        <input type="password" name="newPassword" value={companyPasswordForm.newPassword} onChange={handleCompanyPasswordChange} required />
+      </label>
+      <label>
+        Confirm New Password
+        <input type="password" name="confirmPassword" value={companyPasswordForm.confirmPassword} onChange={handleCompanyPasswordChange} required />
+      </label>
+      <button type="submit">Update Password</button>
+    </form>
+  </div>
+)}
       </div>
     </div>
   );
