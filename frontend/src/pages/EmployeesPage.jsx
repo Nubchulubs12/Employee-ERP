@@ -259,7 +259,7 @@ function EmployeesPage() {
       setError(err.message || "Failed to update profile");
     }
   }
-
+const [showPay, setShowPay] = useState(false);
   function handleTabChange(tab) {
     setActiveTab(tab);
     setError("");
@@ -316,12 +316,25 @@ function EmployeesPage() {
         <h1>Welcome, {employee.name}</h1>
         <p><strong>Email:</strong> {employee.email}</p>
         <p><strong>Company:</strong> {employee.companyName || "N/A"}</p>
+
+      <label>
+        <input
+          type="checkbox"
+          checked={showPay}
+          onChange={() => setShowPay(!showPay)}
+        />
+        Show Compensation
+      </label>
+
+      {showPay && (
         <p>
           <strong>Compensation:</strong>{" "}
           {employee.payType === "SALARY"
             ? `$${Number(employee.salaryRate || 0).toLocaleString()}/yr (Salary)`
             : `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr (Hourly)`}
         </p>
+      )}
+
 
         <div className="employee-tabs">
           <button type="button" className={`employee-tab${activeTab === "overview" ? " employee-tab--active" : ""}`} onClick={() => handleTabChange("overview")}>Overview</button>

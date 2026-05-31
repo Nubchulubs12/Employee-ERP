@@ -1,6 +1,7 @@
 package com.example.erp.services;
 
 import com.example.erp.Dto.*;
+import com.example.erp.data.CompanyRepository;
 import com.example.erp.models.Company;
 import com.example.erp.models.Employee;
 import com.example.erp.data.EmployeeRepository;
@@ -14,13 +15,40 @@ import java.util.List;
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
+    private final CompanyRepository companyRepository;
     private final CompanyService companyService;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public EmployeeService(EmployeeRepository employeeRepository, CompanyService companyService, BCryptPasswordEncoder passwordEncoder) {
+    public EmployeeService(EmployeeRepository employeeRepository,
+                           CompanyRepository companyRepository,
+                           CompanyService companyService,
+                           BCryptPasswordEncoder passwordEncoder) {
         this.employeeRepository = employeeRepository;
+        this.companyRepository = companyRepository;
         this.companyService = companyService;
         this.passwordEncoder = passwordEncoder;
+    }
+
+
+    private void validateEmailUnique(String email, Long excludeEmployeeId) {
+        if (excludeEmployeeId != null) {
+
+            boolean takenByOtherEmployee = employeeRepository.findAll().stream()
+                    .filter(e -> !e.getId().equals(excludeEmployeeId))
+                    .anyMatch(e -> e.getEmail().equalsIgnoreCase(email));
+            if (takenByOtherEmployee) {
+                throw new RuntimeException("Email is already in use by another employee.");
+            }
+        } else {
+
+            if (employeeRepository.existsByEmail(email)) {
+                throw new RuntimeException("Email is already in use by another employee.");
+            }
+        }
+
+        if (companyRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email is already in use by a company account.");
+        }
     }
 
     public List<EmployeeDto> getAllEmployees() {
@@ -37,9 +65,7 @@ public class EmployeeService {
     }
 
     public EmployeeDto createEmployee(CreateEmployeeRequest request) {
-        if (employeeRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Employee email already exists.");
-        }
+        validateEmailUnique(request.getEmail(), null);
 
         Company company = companyService.getCompanyEntityById(request.getCompanyId());
 
@@ -63,6 +89,11 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
 
+
+        if (!employee.getEmail().equalsIgnoreCase(request.getEmail())) {
+            validateEmailUnique(request.getEmail(), id);
+        }
+
         employee.setFirstName(request.getFirstName());
         employee.setLastName(request.getLastName());
         employee.setEmail(request.getEmail());
@@ -79,6 +110,7 @@ public class EmployeeService {
 
         return toDto(employeeRepository.save(employee));
     }
+
     public EmployeeDto updateEmployeeProfile(Long id, UpdateEmployeeProfileRequest request) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
@@ -92,7 +124,6 @@ public class EmployeeService {
         employee.setCountry(request.getCountry());
         employee.setEmergencyContact(request.getEmergencyContact());
         employee.setEmergencyPhone(request.getEmergencyPhone());
-
 
         return toDto(employeeRepository.save(employee));
     }
