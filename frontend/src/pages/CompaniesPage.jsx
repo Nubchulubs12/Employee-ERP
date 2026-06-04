@@ -956,40 +956,33 @@ function CompaniesPage() {
                           </>
                         )}
                       </div>
-
                       {editingEmployeeId !== employee.id && selectedEmployeeId !== employee.id && (
-                        <div className="employee-actions">
-                          <button
-                            type="button"
-                            onClick={() => handleManageTime(employee)}
-                          >
-                            Manage Time
-                          </button>
-
-                          <button type="button" onClick={handleManagePto}>
-                            Manage PTO
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleEditClick(employee)}
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteEmployee(employee.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        <details className="dropdown">
+                          <summary className="dropdown-summary">⋮</summary>
+                          <div className="dropdown-content">
+                            <button type="button" onClick={() => handleManageTime(employee)}>
+                              🕐 Manage Time
+                            </button>
+                            <button type="button" onClick={handleManagePto}>
+                              📋 Manage PTO
+                            </button>
+                            <button type="button" onClick={() => handleEditClick(employee)}>
+                              ✏️ Edit
+                            </button>
+                            <div className="dropdown-divider" />
+                            <button type="button" className="btn-danger" onClick={() => handleDeleteEmployee(employee.id)}>
+                              🗑 Delete
+                            </button>
+                          </div>
+                        </details>
                       )}
                     </li>
                   ))}
                 </ul>
+
               )}
             </div>
+
 
             {showPtoManager && (
               <div className="time-manager-panel">

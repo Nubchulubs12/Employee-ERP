@@ -340,7 +340,7 @@
 .employee-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding: 16px 0;
   border-bottom: 1px solid #ddd;
 }
@@ -350,8 +350,8 @@
 }
 
 .employee-actions {
-  display: flex;
-  gap: 10px;
+  position: relative;
+  top: -2px;
 }
 
 .edit-buttons {
@@ -928,3 +928,79 @@
   color: white;
 }
 
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #374151;
+  font-weight: 600;
+  font-size: 1.2rem;
+  user-select: none;
+  letter-spacing: 2px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.dropdown-summary:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+/* Remove default triangle marker */
+.dropdown-summary::-webkit-details-marker { display: none; }
+
+.dropdown-content {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+  padding: 4px 0;
+}
+
+.dropdown-content button {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #374151;
+  transition: background 0.12s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-content button:hover {
+  background: #f8fafc;
+}
+
+.dropdown-content button.btn-danger {
+  color: #ef4444;
+}
+
+.dropdown-content button.btn-danger:hover {
+  background: #fef2f2;
+}
+
+/* Thin divider before Delete */
+.dropdown-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
