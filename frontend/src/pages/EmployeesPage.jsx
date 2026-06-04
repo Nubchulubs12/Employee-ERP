@@ -453,7 +453,7 @@ const [showPay, setShowPay] = useState(false);
             <hr />
             <h3>My PTO Requests</h3>
             {ptoRequests.length === 0 ? <p>No PTO requests yet.</p> : (
-              <div className="pto-request-list">
+              <div className="pto-request-list pto-request-list-scroll">
                 {ptoRequests.map((request) => (
                   <div key={request.id} className="pto-request-card">
                     <div className="pto-request-card-header">

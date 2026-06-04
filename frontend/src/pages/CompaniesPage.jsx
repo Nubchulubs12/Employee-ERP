@@ -93,6 +93,7 @@ function CompaniesPage() {
   const [ptoRequests, setPtoRequests] = useState([]);
   const [ptoReviewNotes, setPtoReviewNotes] = useState({});
   const [showPtoManager, setShowPtoManager] = useState(false);
+  const [ptoManagerEmployeeId, setPtoManagerEmployeeId] = useState(null);
 
   const [companyPasswordForm, setCompanyPasswordForm] = useState({
     currentPassword: "",
@@ -152,6 +153,7 @@ function CompaniesPage() {
     setMessage("");
     setError("");
     setShowPtoManager(false);
+    setPtoManagerEmployeeId(null);
     setSelectedEmployeeId(null);
     setSelectedEmployeePtoRequests([]);
     setEditingEmployeeId(null);
@@ -224,9 +226,10 @@ function CompaniesPage() {
     }
   }
 
-  async function handleManagePto() {
+  async function handleManagePto(employee) {
     try {
       setShowPtoManager(true);
+      setPtoManagerEmployeeId(employee.id);
       setSelectedEmployeeId(null);
       setSelectedEmployeePtoRequests([]);
       setEditingEmployeeId(null);
@@ -236,7 +239,28 @@ function CompaniesPage() {
       setEmployees(refreshedEmployees);
 
       const data = await fetchCompanyPtoRequests(id);
-      setPtoRequests(data);
+
+      const employeeFullName = `${employee.firstName || ""} ${employee.lastName || ""}`
+        .trim()
+        .toLowerCase();
+
+      const employeePtoRequests = data.filter((request) => {
+        const requestEmployeeId =
+          request.employeeId ||
+          request.employee?.id ||
+          request.employee?.employeeId;
+
+        const requestEmployeeName = (request.employeeName || "")
+          .trim()
+          .toLowerCase();
+
+        return (
+          Number(requestEmployeeId) === Number(employee.id) ||
+          requestEmployeeName === employeeFullName
+        );
+      });
+
+      setPtoRequests(employeePtoRequests);
     } catch (err) {
       setError(err.message || "Failed to load PTO requests");
     }
@@ -244,6 +268,8 @@ function CompaniesPage() {
 
   function handleClosePtoManager() {
     setShowPtoManager(false);
+    setPtoManagerEmployeeId(null);
+    setPtoRequests([]);
   }
 
   function handleEmployeeChange(e) {
@@ -282,6 +308,7 @@ function CompaniesPage() {
 
   function handleEditClick(employee) {
     setShowPtoManager(false);
+    setPtoManagerEmployeeId(null);
     setSelectedEmployeeId(null);
     setSelectedEmployeePtoRequests([]);
     setEditingTimeEntryId(null);
@@ -348,6 +375,12 @@ function CompaniesPage() {
         setSelectedEmployeePtoRequests([]);
         setTimeEntries([]);
       }
+
+      if (ptoManagerEmployeeId === employeeId) {
+        setShowPtoManager(false);
+        setPtoManagerEmployeeId(null);
+        setPtoRequests([]);
+      }
     } catch (err) {
       setError(err.message || "Failed to delete employee");
     }
@@ -357,6 +390,8 @@ function CompaniesPage() {
     try {
       setSelectedEmployeeId(employee.id);
       setShowPtoManager(false);
+      setPtoManagerEmployeeId(null);
+      setPtoRequests([]);
       setEditingEmployeeId(null);
       setEditingTimeEntryId(null);
       setSelectedEmployeePtoRequests([]);
@@ -804,7 +839,7 @@ function CompaniesPage() {
               ) : (
                 <ul className="employee-list">
                   {filteredEmployees.map((employee) => (
-                    <li key={employee.id} className="employee-item">
+                    <li key={employee.id} className="employee-item" style={{ flexWrap: "wrap" }}>
                       <div className="employee-info">
                         <strong>{employee.firstName} {employee.lastName}</strong>
                         <p>Email: {employee.email}</p>
@@ -825,8 +860,25 @@ function CompaniesPage() {
                           <>
                             <hr />
 
+                            <div className="time-manager-panel employee-inline-panel" style={{ flexBasis: "100%", width: "100%", marginTop: 12 }}>
+                                                                         <div style={{
+                                                                           display: "flex",
+                                                                           alignItems: "center",
+                                                                           justifyContent: "space-between",
+                                                                           marginBottom: 12,
+                                                                         }}>
+                                                                           <h3 style={{ margin: 0 }}>Edit Employee</h3>
+
+                                                                           <button
+                                                                             type="button"
+                                                                             className="mini-btn mini-btn-cancel"
+                                                                             onClick={() => setEditingEmployeeId(null)}
+                                                                           >
+                                                                             ✕ Close
+                                                                           </button>
+                                                                         </div>
+
                             <form onSubmit={handleUpdateEmployee} className="register-form">
-                              <h3>Edit Employee</h3>
 
                               <label>
                                 First Name
@@ -943,27 +995,25 @@ function CompaniesPage() {
                                 />
                               </label>
 
-                              <div className="edit-buttons">
-                                <button type="submit">Save Changes</button>
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingEmployeeId(null)}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
+                             <div className="edit-buttons">
+                               <button type="submit">Save Changes</button>
+                             </div>
+
                             </form>
+                            </div>
                           </>
+
                         )}
+
                       </div>
-                      {editingEmployeeId !== employee.id && selectedEmployeeId !== employee.id && (
+                      {editingEmployeeId !== employee.id && selectedEmployeeId !== employee.id && ptoManagerEmployeeId !== employee.id && (
                         <details className="dropdown">
                           <summary className="dropdown-summary">⋮</summary>
                           <div className="dropdown-content">
                             <button type="button" onClick={() => handleManageTime(employee)}>
                               🕐 Manage Time
                             </button>
-                            <button type="button" onClick={handleManagePto}>
+                            <button type="button" onClick={() => handleManagePto(employee)}>
                               📋 Manage PTO
                             </button>
                             <button type="button" onClick={() => handleEditClick(employee)}>
@@ -976,16 +1026,9 @@ function CompaniesPage() {
                           </div>
                         </details>
                       )}
-                    </li>
-                  ))}
-                </ul>
 
-              )}
-            </div>
-
-
-            {showPtoManager && (
-              <div className="time-manager-panel">
+                      {showPtoManager && ptoManagerEmployeeId === employee.id && (
+              <div className="time-manager-panel employee-inline-panel" style={{ flexBasis: "100%", width: "100%", marginTop: 12 }}>
                 <div style={{
                   display: "flex",
                   alignItems: "center",
@@ -1006,65 +1049,81 @@ function CompaniesPage() {
                 {ptoRequests.length === 0 ? (
                   <p>No PTO requests yet.</p>
                 ) : (
-                  <div className="pto-request-list">
-                    {ptoRequests.map((request) => (
-                      <div key={request.id} className="pto-request-card">
-                        <div className="pto-request-card-header">
-                          <strong>{request.employeeName}</strong>
-                          <span className={getStatusClass(request.status)}>
-                            {request.status}
-                          </span>
-                        </div>
+                 <div className="pto-request-list-scroll">
+                   {ptoRequests.map((request) => (
+                     <div key={request.id} className="pto-request-card">
+                       <div className="pto-request-card-header">
+                         <strong>{request.employeeName}</strong>
+                         <span className={getStatusClass(request.status)}>
+                           {request.status}
+                         </span>
+                       </div>
 
-                        <p><strong>Dates:</strong> {request.startDate} — {request.endDate}</p>
-                        <p><strong>Hours Requested:</strong> {Number(request.hoursRequested || 0).toFixed(2)} hrs</p>
-                        <p><strong>Available PTO:</strong> {Number(request.ptoBalanceHours || 0).toFixed(2)} hrs</p>
-                        <p><strong>Reason:</strong> {request.reason || "No reason provided"}</p>
+                       <p>
+                         <strong>Dates:</strong> {request.startDate} — {request.endDate}
+                       </p>
 
-                        {request.reviewNote && (
-                          <p><strong>Manager Note:</strong> {request.reviewNote}</p>
-                        )}
+                       <p>
+                         <strong>Hours Requested:</strong>{" "}
+                         {Number(request.hoursRequested || 0).toFixed(2)} hrs
+                       </p>
 
-                        {request.status === "PENDING" && (
-                          <>
-                            <label>
-                              Review Note
-                              <textarea
-                                value={ptoReviewNotes[request.id] || ""}
-                                onChange={(e) =>
-                                  handlePtoNoteChange(request.id, e.target.value)
-                                }
-                                rows="2"
-                                placeholder="Optional note..."
-                              />
-                            </label>
+                       <p>
+                         <strong>Available PTO:</strong>{" "}
+                         {Number(request.ptoBalanceHours || 0).toFixed(2)} hrs
+                       </p>
 
-                            <div className="edit-buttons">
-                              <button
-                                type="button"
-                                onClick={() => handleApprovePto(request.id)}
-                              >
-                                Approve
-                              </button>
+                       <p>
+                         <strong>Reason:</strong>{" "}
+                         {request.reason || "No reason provided"}
+                       </p>
 
-                              <button
-                                type="button"
-                                onClick={() => handleDenyPto(request.id)}
-                              >
-                                Deny
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                       {request.reviewNote && (
+                         <p>
+                           <strong>Manager Note:</strong> {request.reviewNote}
+                         </p>
+                       )}
+
+                       {request.status === "PENDING" && (
+                         <>
+                           <label>
+                             Review Note
+                             <textarea
+                               value={ptoReviewNotes[request.id] || ""}
+                               onChange={(e) =>
+                                 handlePtoNoteChange(request.id, e.target.value)
+                               }
+                               rows="2"
+                               placeholder="Optional note..."
+                             />
+                           </label>
+
+                           <div className="edit-buttons">
+                             <button
+                               type="button"
+                               onClick={() => handleApprovePto(request.id)}
+                             >
+                               Approve
+                             </button>
+
+                             <button
+                               type="button"
+                               onClick={() => handleDenyPto(request.id)}
+                             >
+                               Deny
+                             </button>
+                           </div>
+                         </>
+                       )}
+                     </div>
+                   ))}
+                 </div>
                 )}
               </div>
             )}
 
-            {selectedEmployeeId && selectedEmployee && (
-              <div className="time-manager-panel">
+                      {selectedEmployeeId === employee.id && (
+              <div className="time-manager-panel employee-inline-panel" style={{ flexBasis: "100%", width: "100%", marginTop: 12 }}>
                 <div style={{
                   display: "flex",
                   alignItems: "center",
@@ -1072,7 +1131,7 @@ function CompaniesPage() {
                   marginBottom: 12,
                 }}>
                   <h3 style={{ margin: 0 }}>
-                    Time Entries — {selectedEmployee.firstName} {selectedEmployee.lastName}
+                    Time Entries — {employee.firstName} {employee.lastName}
                   </h3>
 
                   <button
@@ -1135,7 +1194,7 @@ function CompaniesPage() {
                     {(() => {
                       const period = getPayrollPeriod();
                       const payrollEntries = getPayrollEntries(timeEntries);
-                      const payroll = calculatePayroll(payrollEntries, selectedEmployee);
+                      const payroll = calculatePayroll(payrollEntries, employee);
 
                       return (
                         <div className="payroll-summary">
@@ -1155,19 +1214,19 @@ function CompaniesPage() {
                           <p><strong>Total Hours:</strong> {payroll.totalHours.toFixed(2)}</p>
                           <p><strong>Regular Hours:</strong> {payroll.regularHours.toFixed(2)}</p>
 
-                          {selectedEmployee.payType !== "SALARY" && (
+                          {employee.payType !== "SALARY" && (
                             <p><strong>Overtime Hours:</strong> {payroll.overtimeHours.toFixed(2)}</p>
                           )}
 
                           <p>
                             <strong>
-                              {selectedEmployee.payType === "SALARY"
+                              {employee.payType === "SALARY"
                                 ? "Annual Salary:"
                                 : "Hourly Rate:"}
                             </strong>{" "}
-                            {selectedEmployee.payType === "SALARY"
-                              ? `$${Number(selectedEmployee.salaryRate || 0).toLocaleString()}/yr`
-                              : `$${Number(selectedEmployee.hourlyRate || 0).toFixed(2)}/hr`}
+                            {employee.payType === "SALARY"
+                              ? `$${Number(employee.salaryRate || 0).toLocaleString()}/yr`
+                              : `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr`}
                           </p>
 
                           <p>
@@ -1180,6 +1239,14 @@ function CompaniesPage() {
                 )}
               </div>
             )}
+
+                    </li>
+                  ))}
+                </ul>
+
+              )}
+            </div>
+
           </>
         )}
 

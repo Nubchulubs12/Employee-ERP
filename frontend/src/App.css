@@ -1004,3 +1004,265 @@
   background: #e2e8f0;
   margin: 4px 0;
 }
+
+
+.pto-request-list-scroll {
+  max-height: 450px;
+  overflow-y: auto;
+  padding-right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pto-request-list-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.pto-request-list-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.pto-request-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+/* =========================
+   MOBILE RESPONSIVE STYLES
+   ========================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+table,
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Main page layouts */
+@media (max-width: 768px) {
+  .company-page,
+  .employee-page,
+  .dashboard-page,
+  .page-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .company-left,
+  .company-right,
+  .employee-left,
+  .employee-right {
+    width: 100%;
+  }
+
+  .register-card,
+  .employees-card,
+  .time-manager-panel,
+  .employee-inline-panel,
+  .payroll-summary {
+    width: 100%;
+    margin: 0;
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  /* Tabs wrap instead of overflowing */
+  .employee-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .employee-tab {
+    flex: 1 1 45%;
+    min-width: 120px;
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  /* Employee list */
+  .employee-list {
+    padding: 0;
+    margin: 0;
+  }
+
+  .employee-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .employee-info {
+    width: 100%;
+  }
+
+  .dropdown {
+    align-self: flex-end;
+  }
+
+  .dropdown-content {
+    right: 0;
+    min-width: 180px;
+    z-index: 9999;
+  }
+
+  /* Forms */
+  .register-form {
+    width: 100%;
+  }
+
+  .register-form label {
+    width: 100%;
+  }
+
+  .register-form input,
+  .register-form select,
+  .register-form textarea {
+    width: 100%;
+  }
+
+  .edit-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .edit-buttons button {
+    width: 100%;
+  }
+
+  /* Close button headers */
+  .time-manager-panel > div:first-child,
+  .employee-inline-panel > div:first-child {
+    gap: 10px;
+  }
+
+  .mini-btn {
+    white-space: nowrap;
+  }
+
+  /* PTO scroll area */
+  .pto-request-list-scroll {
+    max-height: 360px;
+    overflow-y: auto;
+  }
+
+  .pto-request-card {
+    width: 100%;
+  }
+
+  .pto-request-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  /* Time grid */
+  .mini-time-grid,
+  .time-grid,
+  .timesheet-grid {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .mini-time-grid table,
+  .time-grid table,
+  .timesheet-grid table {
+    min-width: 650px;
+  }
+
+  /* If your MiniTimeGrid uses div columns */
+  .mini-grid-days,
+  .week-grid,
+  .time-week-grid {
+    overflow-x: auto;
+    display: flex;
+  }
+
+  .mini-grid-day,
+  .week-day,
+  .time-day {
+    min-width: 110px;
+  }
+
+  /* Payroll summary */
+  .payroll-summary {
+    font-size: 0.95rem;
+  }
+
+  /* Search bar */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
+  select,
+  textarea {
+    min-height: 42px;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+  }
+
+  .employee-tab {
+    flex: 1 1 100%;
+  }
+
+  .register-card,
+  .employees-card,
+  .time-manager-panel,
+  .employee-inline-panel {
+    padding: 12px;
+  }
+
+  .dropdown-content {
+    position: absolute;
+    right: 0;
+    width: 190px;
+  }
+
+  .mini-btn {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+}
