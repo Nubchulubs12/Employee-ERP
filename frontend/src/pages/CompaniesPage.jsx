@@ -808,139 +808,221 @@ function CompaniesPage() {
 
       <div className="company-right">
         {activeCompanyTab === "employees" && (
-          <>
-            <div className="employees-card">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <h3 style={{ margin: 0 }}>
-                  Employees <span style={{ fontSize: "0.85rem", color: "#6b7280", fontWeight: 400 }}>({employees.length})</span>
-                </h3>
+          <div className="employee-dashboard employee-dashboard-v2">
+            <div className="employee-page-header">
+              <div>
+                <h1>Employees</h1>
+                <p>View, search, and manage employees in your company.</p>
               </div>
 
+              <div className="employee-count-pill">
+                {employees.length} Employees
+              </div>
+            </div>
+
+            <div className="employee-search-card">
               <input
                 type="text"
                 placeholder="Search by name, email, or job title..."
                 value={employeeSearch}
                 onChange={(e) => setEmployeeSearch(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 6,
-                  fontSize: "0.9rem",
-                  marginBottom: 16,
-                  boxSizing: "border-box",
-                }}
               />
+            </div>
 
-              {employees.length === 0 ? (
-                <p>No employees added yet.</p>
-              ) : filteredEmployees.length === 0 ? (
-                <p>No employees match your search.</p>
-              ) : (
-                <ul className="employee-list">
-                  {filteredEmployees.map((employee) => (
-                    <li key={employee.id} className="employee-item" style={{ flexWrap: "wrap" }}>
-                      <div className="employee-info">
-                        <strong>{employee.firstName} {employee.lastName}</strong>
-                        <p>Email: {employee.email}</p>
-                        <p>Role: {employee.jobTitle || "No title"}</p>
+            {employees.length === 0 ? (
+              <div className="empty-state-card">
+                <h3>No employees added yet</h3>
+                <p>Add your first employee from the Employee Management tab.</p>
+              </div>
+            ) : filteredEmployees.length === 0 ? (
+              <div className="empty-state-card">
+                <h3>No employees found</h3>
+                <p>Try searching a different name, email, or job title.</p>
+              </div>
+            ) : (
+              <>
+                <div className="employee-card-grid employee-card-grid-v2">
+                  {filteredEmployees.map((employee) => {
+                    const isActive =
+                      editingEmployeeId === employee.id ||
+                      selectedEmployeeId === employee.id ||
+                      ptoManagerEmployeeId === employee.id;
 
-                        <p>
-                          Pay:{" "}
-                          {employee.payType === "SALARY"
-                            ? `$${Number(employee.salaryRate || 0).toLocaleString()}/yr (Salary)`
-                            : `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr (Hourly)`}
-                        </p>
+                    return (
+                      <div
+                        key={employee.id}
+                        className={`modern-employee-card employee-card-v2${isActive ? " employee-card-v2--active" : ""}`}
+                      >
+                        <div className="employee-card-top">
+                          <div className="employee-avatar">
+                            {(employee.firstName?.[0] || "")}
+                            {(employee.lastName?.[0] || "")}
+                          </div>
 
-                        <p>
-                          PTO Balance: {Number(employee.ptoBalanceHours || 0).toFixed(2)} hrs
-                        </p>
+                          <div className="employee-title-block">
+                            <h3>{employee.firstName} {employee.lastName}</h3>
+                            <p>{employee.jobTitle || "No title set"}</p>
+                          </div>
 
-                        {editingEmployeeId === employee.id && (
-                          <>
-                            <hr />
+                          <details className="dropdown employee-card-menu">
+                            <summary className="dropdown-summary">⋮</summary>
+                            <div className="dropdown-content">
+                              <button type="button" onClick={() => handleManageTime(employee)}>
+                                🕐 Manage Time
+                              </button>
 
-                            <div className="time-manager-panel employee-inline-panel" style={{ flexBasis: "100%", width: "100%", marginTop: 12 }}>
-                                                                         <div style={{
-                                                                           display: "flex",
-                                                                           alignItems: "center",
-                                                                           justifyContent: "space-between",
-                                                                           marginBottom: 12,
-                                                                         }}>
-                                                                           <h3 style={{ margin: 0 }}>Edit Employee</h3>
+                              <button type="button" onClick={() => handleManagePto(employee)}>
+                                📋 Manage PTO
+                              </button>
 
-                                                                           <button
-                                                                             type="button"
-                                                                             className="mini-btn mini-btn-cancel"
-                                                                             onClick={() => setEditingEmployeeId(null)}
-                                                                           >
-                                                                             ✕ Close
-                                                                           </button>
-                                                                         </div>
+                              <button type="button" onClick={() => handleEditClick(employee)}>
+                                ✏️ Edit
+                              </button>
 
-                            <form onSubmit={handleUpdateEmployee} className="register-form">
+                              <div className="dropdown-divider" />
 
-                              <label>
-                                First Name
-                                <input
-                                  type="text"
-                                  name="firstName"
-                                  value={editForm.firstName}
-                                  onChange={handleEditChange}
-                                />
-                              </label>
+                              <button
+                                type="button"
+                                className="btn-danger"
+                                onClick={() => handleDeleteEmployee(employee.id)}
+                              >
+                                🗑 Delete
+                              </button>
+                            </div>
+                          </details>
+                        </div>
 
-                              <label>
-                                Last Name
-                                <input
-                                  type="text"
-                                  name="lastName"
-                                  value={editForm.lastName}
-                                  onChange={handleEditChange}
-                                />
-                              </label>
+                        <div className="employee-detail-list">
+                          <div>
+                            <span>Email</span>
+                            <strong>{employee.email}</strong>
+                          </div>
 
-                              <label>
-                                Email
-                                <input
-                                  type="email"
-                                  name="email"
-                                  value={editForm.email}
-                                  onChange={handleEditChange}
-                                />
-                              </label>
+                          <div>
+                            <span>Pay</span>
+                            <strong>
+                              {employee.payType === "SALARY"
+                                ? `$${Number(employee.salaryRate || 0).toLocaleString()}/yr`
+                                : `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr`}
+                            </strong>
+                          </div>
 
-                              <label>
-                                New Password
-                                <input
-                                  type="password"
-                                  name="newPassword"
-                                  value={editForm.newPassword}
-                                  onChange={handleEditChange}
-                                  placeholder="Leave blank to keep current password"
-                                />
-                              </label>
+                          <div>
+                            <span>Pay Type</span>
+                            <strong>{employee.payType === "SALARY" ? "Salary" : "Hourly"}</strong>
+                          </div>
 
-                              <label>
-                                Job Title
-                                <input
-                                  type="text"
-                                  name="jobTitle"
-                                  value={editForm.jobTitle}
-                                  onChange={handleEditChange}
-                                />
-                              </label>
+                          <div>
+                            <span>PTO Balance</span>
+                            <strong>{Number(employee.ptoBalanceHours || 0).toFixed(2)} hrs</strong>
+                          </div>
+                        </div>
 
-                              <label>
-                                Hire Date
-                                <input
-                                  type="date"
-                                  name="hireDate"
-                                  value={editForm.hireDate}
-                                  onChange={handleEditChange}
-                                />
-                              </label>
+                        <div className="employee-card-actions">
+                          <button type="button" onClick={() => handleManageTime(employee)}>
+                            Manage Time
+                          </button>
 
+                          <button type="button" onClick={() => handleManagePto(employee)}>
+                            Manage PTO
+                          </button>
+
+                          <button type="button" onClick={() => handleEditClick(employee)}>
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {(editingEmployeeId || selectedEmployeeId || ptoManagerEmployeeId) && (
+                  <div className="employee-management-workspace">
+                    {editingEmployeeId && (() => {
+                      const employee = employees.find((e) => e.id === editingEmployeeId);
+
+                      if (!employee) return null;
+
+                      return (
+                        <div className="workspace-panel">
+                          <div className="workspace-panel-header">
+                            <div>
+                              <h2>Edit Employee</h2>
+                              <p>{employee.firstName} {employee.lastName}</p>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="workspace-close-btn"
+                              onClick={() => setEditingEmployeeId(null)}
+                            >
+                              ✕ Close
+                            </button>
+                          </div>
+
+                          <form onSubmit={handleUpdateEmployee} className="register-form workspace-form">
+                            <label>
+                              First Name
+                              <input
+                                type="text"
+                                name="firstName"
+                                value={editForm.firstName}
+                                onChange={handleEditChange}
+                              />
+                            </label>
+
+                            <label>
+                              Last Name
+                              <input
+                                type="text"
+                                name="lastName"
+                                value={editForm.lastName}
+                                onChange={handleEditChange}
+                              />
+                            </label>
+
+                            <label>
+                              Email
+                              <input
+                                type="email"
+                                name="email"
+                                value={editForm.email}
+                                onChange={handleEditChange}
+                              />
+                            </label>
+
+                            <label>
+                              New Password
+                              <input
+                                type="password"
+                                name="newPassword"
+                                value={editForm.newPassword}
+                                onChange={handleEditChange}
+                                placeholder="Leave blank to keep current password"
+                              />
+                            </label>
+
+                            <label>
+                              Job Title
+                              <input
+                                type="text"
+                                name="jobTitle"
+                                value={editForm.jobTitle}
+                                onChange={handleEditChange}
+                              />
+                            </label>
+
+                            <label>
+                              Hire Date
+                              <input
+                                type="date"
+                                name="hireDate"
+                                value={editForm.hireDate}
+                                onChange={handleEditChange}
+                              />
+                            </label>
+
+                            <div className="workspace-form-full">
                               <PayTypeCheckboxes
                                 payType={editForm.payType}
                                 onChange={(type) =>
@@ -952,496 +1034,533 @@ function CompaniesPage() {
                                   }))
                                 }
                               />
+                            </div>
 
-                              {editForm.payType === "HOURLY" && (
-                                <label>
-                                  Hourly Rate ($/hr)
-                                  <input
-                                    type="number"
-                                    name="hourlyRate"
-                                    value={editForm.hourlyRate}
-                                    onChange={handleEditChange}
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                  />
-                                </label>
-                              )}
-
-                              {editForm.payType === "SALARY" && (
-                                <label>
-                                  Annual Salary ($)
-                                  <input
-                                    type="number"
-                                    name="salaryRate"
-                                    value={editForm.salaryRate}
-                                    onChange={handleEditChange}
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                  />
-                                </label>
-                              )}
-
+                            {editForm.payType === "HOURLY" && (
                               <label>
-                                PTO Balance Hours
+                                Hourly Rate ($/hr)
                                 <input
                                   type="number"
-                                  name="ptoBalanceHours"
-                                  value={editForm.ptoBalanceHours}
+                                  name="hourlyRate"
+                                  value={editForm.hourlyRate}
                                   onChange={handleEditChange}
                                   min="0"
-                                  step="1"
+                                  step="0.01"
+                                  placeholder="0.00"
                                 />
                               </label>
+                            )}
 
-                             <div className="edit-buttons">
-                               <button type="submit">Save Changes</button>
-                             </div>
+                            {editForm.payType === "SALARY" && (
+                              <label>
+                                Annual Salary ($)
+                                <input
+                                  type="number"
+                                  name="salaryRate"
+                                  value={editForm.salaryRate}
+                                  onChange={handleEditChange}
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                />
+                              </label>
+                            )}
 
-                            </form>
+                            <label>
+                              PTO Balance Hours
+                              <input
+                                type="number"
+                                name="ptoBalanceHours"
+                                value={editForm.ptoBalanceHours}
+                                onChange={handleEditChange}
+                                min="0"
+                                step="1"
+                              />
+                            </label>
+
+                            <div className="edit-buttons workspace-form-actions">
+                              <button type="submit">Save Changes</button>
                             </div>
-                          </>
-
-                        )}
-
-                      </div>
-                      {editingEmployeeId !== employee.id && selectedEmployeeId !== employee.id && ptoManagerEmployeeId !== employee.id && (
-                        <details className="dropdown">
-                          <summary className="dropdown-summary">⋮</summary>
-                          <div className="dropdown-content">
-                            <button type="button" onClick={() => handleManageTime(employee)}>
-                              🕐 Manage Time
-                            </button>
-                            <button type="button" onClick={() => handleManagePto(employee)}>
-                              📋 Manage PTO
-                            </button>
-                            <button type="button" onClick={() => handleEditClick(employee)}>
-                              ✏️ Edit
-                            </button>
-                            <div className="dropdown-divider" />
-                            <button type="button" className="btn-danger" onClick={() => handleDeleteEmployee(employee.id)}>
-                              🗑 Delete
-                            </button>
-                          </div>
-                        </details>
-                      )}
-
-                      {showPtoManager && ptoManagerEmployeeId === employee.id && (
-              <div className="time-manager-panel employee-inline-panel" style={{ flexBasis: "100%", width: "100%", marginTop: 12 }}>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 12,
-                }}>
-                  <h3 style={{ margin: 0 }}>PTO Requests</h3>
-
-                  <button
-                    type="button"
-                    className="mini-btn mini-btn-cancel"
-                    onClick={handleClosePtoManager}
-                  >
-                    ✕ Close
-                  </button>
-                </div>
-
-                {ptoRequests.length === 0 ? (
-                  <p>No PTO requests yet.</p>
-                ) : (
-                 <div className="pto-request-list-scroll">
-                   {ptoRequests.map((request) => (
-                     <div key={request.id} className="pto-request-card">
-                       <div className="pto-request-card-header">
-                         <strong>{request.employeeName}</strong>
-                         <span className={getStatusClass(request.status)}>
-                           {request.status}
-                         </span>
-                       </div>
-
-                       <p>
-                         <strong>Dates:</strong> {request.startDate} — {request.endDate}
-                       </p>
-
-                       <p>
-                         <strong>Hours Requested:</strong>{" "}
-                         {Number(request.hoursRequested || 0).toFixed(2)} hrs
-                       </p>
-
-                       <p>
-                         <strong>Available PTO:</strong>{" "}
-                         {Number(request.ptoBalanceHours || 0).toFixed(2)} hrs
-                       </p>
-
-                       <p>
-                         <strong>Reason:</strong>{" "}
-                         {request.reason || "No reason provided"}
-                       </p>
-
-                       {request.reviewNote && (
-                         <p>
-                           <strong>Manager Note:</strong> {request.reviewNote}
-                         </p>
-                       )}
-
-                       {request.status === "PENDING" && (
-                         <>
-                           <label>
-                             Review Note
-                             <textarea
-                               value={ptoReviewNotes[request.id] || ""}
-                               onChange={(e) =>
-                                 handlePtoNoteChange(request.id, e.target.value)
-                               }
-                               rows="2"
-                               placeholder="Optional note..."
-                             />
-                           </label>
-
-                           <div className="edit-buttons">
-                             <button
-                               type="button"
-                               onClick={() => handleApprovePto(request.id)}
-                             >
-                               Approve
-                             </button>
-
-                             <button
-                               type="button"
-                               onClick={() => handleDenyPto(request.id)}
-                             >
-                               Deny
-                             </button>
-                           </div>
-                         </>
-                       )}
-                     </div>
-                   ))}
-                 </div>
-                )}
-              </div>
-            )}
-
-                      {selectedEmployeeId === employee.id && (
-              <div className="time-manager-panel employee-inline-panel" style={{ flexBasis: "100%", width: "100%", marginTop: 12 }}>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 12,
-                }}>
-                  <h3 style={{ margin: 0 }}>
-                    Time Entries — {employee.firstName} {employee.lastName}
-                  </h3>
-
-                  <button
-                    type="button"
-                    className="mini-btn mini-btn-cancel"
-                    onClick={handleCloseTimeManager}
-                  >
-                    ✕ Close
-                  </button>
-                </div>
-
-                {editingTimeEntryId && (
-                  <form onSubmit={handleUpdateTimeEntry} className="register-form time-edit-form">
-                    <h4>Edit Entry</h4>
-
-                    <label>
-                      Clock In
-                      <input
-                        type="datetime-local"
-                        name="clockInTime"
-                        value={timeForm.clockInTime}
-                        onChange={handleTimeFormChange}
-                        required
-                      />
-                    </label>
-
-                    <label>
-                      Clock Out
-                      <input
-                        type="datetime-local"
-                        name="clockOutTime"
-                        value={timeForm.clockOutTime}
-                        onChange={handleTimeFormChange}
-                      />
-                    </label>
-
-                    <div className="edit-buttons">
-                      <button type="submit">Save Time</button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingTimeEntryId(null)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {timeEntries.length === 0 && selectedEmployeePtoRequests.length === 0 ? (
-                  <p>No time entries or approved PTO found.</p>
-                ) : (
-                  <>
-                    <MiniTimeGrid
-                      timeEntries={timeEntries}
-                      ptoRequests={selectedEmployeePtoRequests}
-                      onEdit={handleEditTimeClick}
-                      onDelete={handleDeleteTimeEntry}
-                    />
-
-                    {(() => {
-                      const period = getPayrollPeriod();
-                      const payrollEntries = getPayrollEntries(timeEntries);
-                      const payroll = calculatePayroll(payrollEntries, employee);
-
-                      return (
-                        <div className="payroll-summary">
-                          <div className="payroll-summary-header">
-                            <h4>Payroll Summary</h4>
-
-                            <p>
-                              <strong>Payroll Type:</strong>{" "}
-                              {companySettingsForm.payrollType === "BIWEEKLY"
-                                ? "Bi-Weekly"
-                                : "Weekly"}
-                            </p>
-                          </div>
-
-                          <p><strong>Pay Period:</strong> {period.startText} — {period.endText}</p>
-                          <p><strong>Payday:</strong> {companySettingsForm.payday || "FRIDAY"}</p>
-                          <p><strong>Total Hours:</strong> {payroll.totalHours.toFixed(2)}</p>
-                          <p><strong>Regular Hours:</strong> {payroll.regularHours.toFixed(2)}</p>
-
-                          {employee.payType !== "SALARY" && (
-                            <p><strong>Overtime Hours:</strong> {payroll.overtimeHours.toFixed(2)}</p>
-                          )}
-
-                          <p>
-                            <strong>
-                              {employee.payType === "SALARY"
-                                ? "Annual Salary:"
-                                : "Hourly Rate:"}
-                            </strong>{" "}
-                            {employee.payType === "SALARY"
-                              ? `$${Number(employee.salaryRate || 0).toLocaleString()}/yr`
-                              : `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr`}
-                          </p>
-
-                          <p>
-                            <strong>Estimated Gross Pay:</strong> ${payroll.grossPay.toFixed(2)}
-                          </p>
+                          </form>
                         </div>
                       );
                     })()}
-                  </>
+
+                    {showPtoManager && ptoManagerEmployeeId && (() => {
+                      const employee = employees.find((e) => e.id === ptoManagerEmployeeId);
+
+                      if (!employee) return null;
+
+                      return (
+                        <div className="workspace-panel">
+                          <div className="workspace-panel-header">
+                            <div>
+                              <h2>PTO Requests</h2>
+                              <p>{employee.firstName} {employee.lastName}</p>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="workspace-close-btn"
+                              onClick={handleClosePtoManager}
+                            >
+                              ✕ Close
+                            </button>
+                          </div>
+
+                          {ptoRequests.length === 0 ? (
+                            <div className="empty-state-card workspace-empty">
+                              <h3>No PTO requests yet</h3>
+                              <p>This employee does not have any PTO requests.</p>
+                            </div>
+                          ) : (
+                            <div className="pto-request-list-scroll workspace-pto-list">
+                              {ptoRequests.map((request) => (
+                                <div key={request.id} className="pto-request-card">
+                                  <div className="pto-request-card-header">
+                                    <strong>{request.employeeName}</strong>
+                                    <span className={getStatusClass(request.status)}>
+                                      {request.status}
+                                    </span>
+                                  </div>
+
+                                  <p>
+                                    <strong>Dates:</strong> {request.startDate} — {request.endDate}
+                                  </p>
+
+                                  <p>
+                                    <strong>Hours Requested:</strong>{" "}
+                                    {Number(request.hoursRequested || 0).toFixed(2)} hrs
+                                  </p>
+
+                                  <p>
+                                    <strong>Available PTO:</strong>{" "}
+                                    {Number(request.ptoBalanceHours || 0).toFixed(2)} hrs
+                                  </p>
+
+                                  <p>
+                                    <strong>Reason:</strong>{" "}
+                                    {request.reason || "No reason provided"}
+                                  </p>
+
+                                  {request.reviewNote && (
+                                    <p>
+                                      <strong>Manager Note:</strong> {request.reviewNote}
+                                    </p>
+                                  )}
+
+                                  {request.status === "PENDING" && (
+                                    <>
+                                      <label>
+                                        Review Note
+                                        <textarea
+                                          value={ptoReviewNotes[request.id] || ""}
+                                          onChange={(e) =>
+                                            handlePtoNoteChange(request.id, e.target.value)
+                                          }
+                                          rows="2"
+                                          placeholder="Optional note..."
+                                        />
+                                      </label>
+
+                                      <div className="edit-buttons">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleApprovePto(request.id)}
+                                        >
+                                          Approve
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDenyPto(request.id)}
+                                        >
+                                          Deny
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {selectedEmployeeId && (() => {
+                      const employee = employees.find((e) => e.id === selectedEmployeeId);
+
+                      if (!employee) return null;
+
+                      return (
+                        <div className="workspace-panel">
+                          <div className="workspace-panel-header">
+                            <div>
+                              <h2>Time Entries</h2>
+                              <p>{employee.firstName} {employee.lastName}</p>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="workspace-close-btn"
+                              onClick={handleCloseTimeManager}
+                            >
+                              ✕ Close
+                            </button>
+                          </div>
+
+                          {editingTimeEntryId && (
+                            <form onSubmit={handleUpdateTimeEntry} className="register-form time-edit-form workspace-time-edit">
+                              <h4>Edit Entry</h4>
+
+                              <label>
+                                Clock In
+                                <input
+                                  type="datetime-local"
+                                  name="clockInTime"
+                                  value={timeForm.clockInTime}
+                                  onChange={handleTimeFormChange}
+                                  required
+                                />
+                              </label>
+
+                              <label>
+                                Clock Out
+                                <input
+                                  type="datetime-local"
+                                  name="clockOutTime"
+                                  value={timeForm.clockOutTime}
+                                  onChange={handleTimeFormChange}
+                                />
+                              </label>
+
+                              <div className="edit-buttons">
+                                <button type="submit">Save Time</button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingTimeEntryId(null)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          )}
+
+                          {timeEntries.length === 0 && selectedEmployeePtoRequests.length === 0 ? (
+                            <div className="empty-state-card workspace-empty">
+                              <h3>No time entries found</h3>
+                              <p>No time entries or approved PTO found for this employee.</p>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="workspace-time-grid">
+                                <MiniTimeGrid
+                                  timeEntries={timeEntries}
+                                  ptoRequests={selectedEmployeePtoRequests}
+                                  onEdit={handleEditTimeClick}
+                                  onDelete={handleDeleteTimeEntry}
+                                />
+                              </div>
+
+                              {(() => {
+                                const period = getPayrollPeriod();
+                                const payrollEntries = getPayrollEntries(timeEntries);
+                                const payroll = calculatePayroll(payrollEntries, employee);
+
+                                return (
+                                  <div className="payroll-summary workspace-payroll-summary">
+                                    <div className="payroll-summary-header">
+                                      <h4>Payroll Summary</h4>
+
+                                      <p>
+                                        <strong>Payroll Type:</strong>{" "}
+                                        {companySettingsForm.payrollType === "BIWEEKLY"
+                                          ? "Bi-Weekly"
+                                          : "Weekly"}
+                                      </p>
+                                    </div>
+
+                                    <div className="workspace-payroll-grid">
+                                      <p><strong>Pay Period:</strong> {period.startText} — {period.endText}</p>
+                                      <p><strong>Payday:</strong> {companySettingsForm.payday || "FRIDAY"}</p>
+                                      <p><strong>Total Hours:</strong> {payroll.totalHours.toFixed(2)}</p>
+                                      <p><strong>Regular Hours:</strong> {payroll.regularHours.toFixed(2)}</p>
+
+                                      {employee.payType !== "SALARY" && (
+                                        <p><strong>Overtime Hours:</strong> {payroll.overtimeHours.toFixed(2)}</p>
+                                      )}
+
+                                      <p>
+                                        <strong>
+                                          {employee.payType === "SALARY"
+                                            ? "Annual Salary:"
+                                            : "Hourly Rate:"}
+                                        </strong>{" "}
+                                        {employee.payType === "SALARY"
+                                          ? `$${Number(employee.salaryRate || 0).toLocaleString()}/yr`
+                                          : `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr`}
+                                      </p>
+
+                                      <p className="gross-pay-highlight">
+                                        <strong>Estimated Gross Pay:</strong> ${payroll.grossPay.toFixed(2)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 )}
-              </div>
+              </>
             )}
-
-                    </li>
-                  ))}
-                </ul>
-
-              )}
-            </div>
-
-          </>
-        )}
-
-        {activeCompanyTab === "management" && (
-          <div className="employees-card">
-            <h3>Add Employee</h3>
-
-            <form onSubmit={handleAddEmployee} className="register-form">
-              <label>
-                First Name
-                <input
-                  type="text"
-                  name="firstName"
-                  value={employeeForm.firstName}
-                  onChange={handleEmployeeChange}
-                  required
-                />
-              </label>
-
-              <label>
-                Last Name
-                <input
-                  type="text"
-                  name="lastName"
-                  value={employeeForm.lastName}
-                  onChange={handleEmployeeChange}
-                  required
-                />
-              </label>
-
-              <label>
-                Email
-                <input
-                  type="email"
-                  name="email"
-                  value={employeeForm.email}
-                  onChange={handleEmployeeChange}
-                  required
-                />
-              </label>
-
-              <label>
-                Password
-                <input
-                  type="password"
-                  name="password"
-                  value={employeeForm.password}
-                  onChange={handleEmployeeChange}
-                  required
-                />
-              </label>
-
-              <label>
-                Job Title
-                <input
-                  type="text"
-                  name="jobTitle"
-                  value={employeeForm.jobTitle}
-                  onChange={handleEmployeeChange}
-                />
-              </label>
-
-              <label>
-                Hire Date
-                <input
-                  type="date"
-                  name="hireDate"
-                  value={employeeForm.hireDate}
-                  onChange={handleEmployeeChange}
-                />
-              </label>
-
-              <PayTypeCheckboxes
-                payType={employeeForm.payType}
-                onChange={(type) =>
-                  setEmployeeForm((prev) => ({
-                    ...prev,
-                    payType: type,
-                    hourlyRate: "",
-                    salaryRate: "",
-                  }))
-                }
-              />
-
-              {employeeForm.payType === "HOURLY" && (
-                <label>
-                  Hourly Rate ($/hr)
-                  <input
-                    type="number"
-                    name="hourlyRate"
-                    value={employeeForm.hourlyRate}
-                    onChange={handleEmployeeChange}
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                  />
-                </label>
-              )}
-
-              {employeeForm.payType === "SALARY" && (
-                <label>
-                  Annual Salary ($)
-                  <input
-                    type="number"
-                    name="salaryRate"
-                    value={employeeForm.salaryRate}
-                    onChange={handleEmployeeChange}
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                  />
-                </label>
-              )}
-
-              <label>
-                PTO Balance Hours
-                <input
-                  type="number"
-                  name="ptoBalanceHours"
-                  value={employeeForm.ptoBalanceHours}
-                  onChange={handleEmployeeChange}
-                  min="0"
-                  step="1"
-                />
-              </label>
-
-              <button type="submit">Add Employee</button>
-            </form>
           </div>
         )}
 
+        {activeCompanyTab === "management" && (
+          <div className="modern-form-page">
+            <div className="modern-settings-hero">
+              <div>
+                <h1>Employee Management</h1>
+                <p>Add new employees and set their pay, role, and starting PTO balance.</p>
+              </div>
+              <div className="hero-art">👥</div>
+            </div>
+
+            <div className="modern-card">
+              <div className="modern-card-header">
+                <div className="modern-icon blue">➕</div>
+                <div>
+                  <h2>Add Employee</h2>
+                  <p>Create an employee login and payroll profile.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleAddEmployee} className="modern-dashboard-form">
+                <h3 className="form-section-title">Employee Information</h3>
+
+                <label>
+                  First Name
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={employeeForm.firstName}
+                    onChange={handleEmployeeChange}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Last Name
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={employeeForm.lastName}
+                    onChange={handleEmployeeChange}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    name="email"
+                    value={employeeForm.email}
+                    onChange={handleEmployeeChange}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Temporary Password
+                  <input
+                    type="password"
+                    name="password"
+                    value={employeeForm.password}
+                    onChange={handleEmployeeChange}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Job Title
+                  <input
+                    type="text"
+                    name="jobTitle"
+                    value={employeeForm.jobTitle}
+                    onChange={handleEmployeeChange}
+                    placeholder="Example: Sales Associate"
+                  />
+                </label>
+
+                <label>
+                  Hire Date
+                  <input
+                    type="date"
+                    name="hireDate"
+                    value={employeeForm.hireDate}
+                    onChange={handleEmployeeChange}
+                  />
+                </label>
+
+                <h3 className="form-section-title">Pay and PTO</h3>
+
+                <div className="pay-type-card full-width-field">
+                  <PayTypeCheckboxes
+                    payType={employeeForm.payType}
+                    onChange={(type) =>
+                      setEmployeeForm((prev) => ({
+                        ...prev,
+                        payType: type,
+                        hourlyRate: "",
+                        salaryRate: "",
+                      }))
+                    }
+                  />
+                </div>
+
+                {employeeForm.payType === "HOURLY" && (
+                  <label>
+                    Hourly Rate ($/hr)
+                    <input
+                      type="number"
+                      name="hourlyRate"
+                      value={employeeForm.hourlyRate}
+                      onChange={handleEmployeeChange}
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </label>
+                )}
+
+                {employeeForm.payType === "SALARY" && (
+                  <label>
+                    Annual Salary ($)
+                    <input
+                      type="number"
+                      name="salaryRate"
+                      value={employeeForm.salaryRate}
+                      onChange={handleEmployeeChange}
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </label>
+                )}
+
+                <label>
+                  PTO Balance Hours
+                  <input
+                    type="number"
+                    name="ptoBalanceHours"
+                    value={employeeForm.ptoBalanceHours}
+                    onChange={handleEmployeeChange}
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                  />
+                </label>
+
+                <div className="modern-form-note">
+                  <span>ℹ️</span>
+                  The employee can use this login to clock in, request PTO, and view their information.
+                </div>
+
+                <div className="form-actions">
+                  <button type="submit" className="modern-save-btn">
+                     Add Employee
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+
         {activeCompanyTab === "companyInfo" && (
-          <div className="employees-card">
-            <h3>Edit Company Info</h3>
+          <div className="modern-form-page">
+            <div className="modern-settings-hero">
+              <div>
+                <h1>Company Info</h1>
+                <p>Update your company contact details and business address.</p>
+              </div>
+              <div className="hero-art">🏢</div>
+            </div>
 
-            <form onSubmit={handleSaveCompanyInfo} className="register-form">
-              <label>
-                Company Name
-                <input
-                  type="text"
-                  name="name"
-                  value={companyInfoForm.name}
-                  onChange={handleCompanyInfoChange}
-                  required
-                />
-              </label>
+            <div className="modern-card">
+              <div className="modern-card-header">
+                <div className="modern-icon blue">🏢</div>
+                <div>
+                  <h2>Edit Company Info</h2>
+                  <p>This information appears on the company profile and employee portal.</p>
+                </div>
+              </div>
 
-              <label>
-                Email
-                <input
-                  type="email"
-                  name="email"
-                  value={companyInfoForm.email}
-                  onChange={handleCompanyInfoChange}
-                  required
-                />
-              </label>
+              <form onSubmit={handleSaveCompanyInfo} className="modern-dashboard-form">
+                <h3 className="form-section-title">Basic Information</h3>
 
-              <label>
-                Phone
-                <input
-                  type="tel"
-                  name="phone"
-                  value={companyInfoForm.phone}
-                  onChange={handleCompanyInfoChange}
-                />
-              </label>
+                <label>
+                  Company Name
+                  <input
+                    type="text"
+                    name="name"
+                    value={companyInfoForm.name}
+                    onChange={handleCompanyInfoChange}
+                    required
+                  />
+                </label>
 
-              <hr />
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    name="email"
+                    value={companyInfoForm.email}
+                    onChange={handleCompanyInfoChange}
+                    required
+                  />
+                </label>
 
-              <h4 style={{ margin: "8px 0 4px" }}>Address</h4>
+                <label>
+                  Phone
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={companyInfoForm.phone}
+                    onChange={handleCompanyInfoChange}
+                  />
+                </label>
 
-              <label>
-                Street Address
-                <input
-                  type="text"
-                  name="streetAddress"
-                  value={companyInfoForm.streetAddress}
-                  onChange={handleCompanyInfoChange}
-                  placeholder="123 Main St"
-                />
-              </label>
+                <h3 className="form-section-title">Business Address</h3>
 
-              <label>
-                Address Line 2
-                <input
-                  type="text"
-                  name="addressLine2"
-                  value={companyInfoForm.addressLine2}
-                  onChange={handleCompanyInfoChange}
-                  placeholder="Suite, Apt, Unit (optional)"
-                />
-              </label>
+                <label className="full-width-field">
+                  Street Address
+                  <input
+                    type="text"
+                    name="streetAddress"
+                    value={companyInfoForm.streetAddress}
+                    onChange={handleCompanyInfoChange}
+                    placeholder="123 Main St"
+                  />
+                </label>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <label className="full-width-field">
+                  Address Line 2
+                  <input
+                    type="text"
+                    name="addressLine2"
+                    value={companyInfoForm.addressLine2}
+                    onChange={handleCompanyInfoChange}
+                    placeholder="Suite, Apt, Unit (optional)"
+                  />
+                </label>
+
                 <label>
                   City
                   <input
@@ -1466,9 +1585,7 @@ function CompaniesPage() {
                     ))}
                   </select>
                 </label>
-              </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <label>
                   ZIP / Postal Code
                   <input
@@ -1490,32 +1607,56 @@ function CompaniesPage() {
                     placeholder="United States"
                   />
                 </label>
-              </div>
 
-              <button type="submit">Save Company Info</button>
-            </form>
+                <div className="modern-form-note">
+                  <span>ℹ️</span>
+                  Keep this information up to date so employees see the correct company contact details.
+                </div>
+
+                <div className="form-actions">
+                  <button type="submit" className="modern-save-btn">
+                     Save Company Info
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
+
         {activeCompanyTab === "settings" && (
-          <>
-            <div className="employees-card">
-              <h3>Company Settings</h3>
+          <div className="modern-settings-page">
+            <div className="modern-settings-hero">
+              <div>
+                <h1>Company Settings</h1>
+                <p>Manage your payroll preferences and pay schedule settings.</p>
+              </div>
+              <div className="hero-art">📅</div>
+            </div>
 
-              <form onSubmit={handleSaveCompanySettings} className="register-form">
-                <label>
-                  Payroll Type
-                  <select
-                    name="payrollType"
-                    value={companySettingsForm.payrollType}
-                    onChange={handleCompanySettingsChange}
-                  >
-                    <option value="WEEKLY">Weekly</option>
-                    <option value="BIWEEKLY">Bi-Weekly</option>
-                  </select>
-                </label>
+            <div className="modern-card">
+              <div className="modern-card-header">
+                <div className="modern-icon blue">📅</div>
+                <div>
+                  <h2>Payroll Configuration</h2>
+                  <p>Set how and when your employees are paid.</p>
+                </div>
+              </div>
 
-                {companySettingsForm.payrollType === "WEEKLY" && (
+              <form onSubmit={handleSaveCompanySettings}>
+                <div className="modern-form-grid">
+                  <label>
+                    Payroll Type
+                    <select
+                      name="payrollType"
+                      value={companySettingsForm.payrollType}
+                      onChange={handleCompanySettingsChange}
+                    >
+                      <option value="WEEKLY">Weekly</option>
+                      <option value="BIWEEKLY">Bi-Weekly</option>
+                    </select>
+                  </label>
+
                   <label>
                     Payday
                     <select
@@ -1538,10 +1679,8 @@ function CompaniesPage() {
                       ))}
                     </select>
                   </label>
-                )}
 
-                {companySettingsForm.payrollType === "BIWEEKLY" && (
-                  <>
+                  {companySettingsForm.payrollType === "BIWEEKLY" && (
                     <label>
                       Pay Period Start Date
                       <input
@@ -1552,95 +1691,188 @@ function CompaniesPage() {
                         required
                       />
                     </label>
+                  )}
+                </div>
 
-                    <label>
-                      Payday
-                      <select
-                        name="payday"
-                        value={companySettingsForm.payday}
-                        onChange={handleCompanySettingsChange}
-                      >
-                        {[
-                          "MONDAY",
-                          "TUESDAY",
-                          "WEDNESDAY",
-                          "THURSDAY",
-                          "FRIDAY",
-                          "SATURDAY",
-                          "SUNDAY",
-                        ].map((d) => (
-                          <option key={d} value={d}>
-                            {d.charAt(0) + d.slice(1).toLowerCase()}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </>
-                )}
+                <div className="settings-bottom-row">
+                  <div className="settings-info-box">
+                    <span>ℹ️</span>
+                    These settings determine how often payroll runs and the day employees are paid.
+                  </div>
 
-                <button type="submit">Save Settings</button>
+                  <button type="submit" className="modern-save-btn">
+                    💾 Save Settings
+                  </button>
+                </div>
               </form>
             </div>
 
-            <div className="employees-card">
-              <h3>Current Payroll Settings</h3>
-
-              <div className="payroll-summary">
-                <p>
-                  <strong>Payroll Type:</strong>{" "}
-                  {companySettingsForm.payrollType === "BIWEEKLY"
-                    ? "Bi-Weekly"
-                    : "Weekly"}
-                </p>
-
-                <p><strong>Payday:</strong> {companySettingsForm.payday}</p>
-
-                {companySettingsForm.payrollType === "BIWEEKLY" && (
-                  <p>
-                    <strong>Bi-Weekly Start Date:</strong>{" "}
-                    {companySettingsForm.biweeklyStartDate || "Not set"}
-                  </p>
-                )}
-
-                {(() => {
-                  const period = getPayrollPeriod();
-
-                  return (
-                    <p>
-                      <strong>Current Pay Period:</strong>{" "}
-                      {period.startText} — {period.endText}
-                    </p>
-                  );
-                })()}
+            <div className="modern-card">
+              <div className="modern-card-header">
+                <div className="modern-icon green">📋</div>
+                <div>
+                  <h2>Current Payroll Settings</h2>
+                  <p>Overview of your active payroll configuration.</p>
+                </div>
               </div>
+
+              {(() => {
+                const period = getPayrollPeriod();
+
+                return (
+                  <>
+                    <div className="payroll-overview-card">
+                      <span className="active-badge">Active</span>
+
+                      <div className="payroll-overview-item">
+                        <div className="overview-icon">📅</div>
+                        <div>
+                          <span>Payroll Type</span>
+                          <strong>
+                            {companySettingsForm.payrollType === "BIWEEKLY"
+                              ? "Bi-Weekly"
+                              : "Weekly"}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="payroll-overview-item">
+                        <div className="overview-icon">🗓️</div>
+                        <div>
+                          <span>Payday</span>
+                          <strong>
+                            {companySettingsForm.payday.charAt(0) +
+                              companySettingsForm.payday.slice(1).toLowerCase()}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="payroll-overview-item">
+                        <div className="overview-icon">🕒</div>
+                        <div>
+                          <span>Current Pay Period</span>
+                          <strong>
+                            {period.startText} — {period.endText}
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="settings-explain-box">
+                      <span>ℹ️</span>
+                      <div>
+                        <strong>What does this mean?</strong>
+                        <p>
+                          Payroll is calculated{" "}
+                          {companySettingsForm.payrollType === "BIWEEKLY"
+                            ? "every two weeks"
+                            : "every week"}{" "}
+                          and employees will be paid on{" "}
+                          {companySettingsForm.payday.charAt(0) +
+                            companySettingsForm.payday.slice(1).toLowerCase()}.
+                          The current pay period is {period.startText} through {period.endText}.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
-          </>
+          </div>
         )}
     {activeCompanyTab === "documents" && (
       <DocumentsPanel companyId={id} canUpload={true} />
     )}
 {activeCompanyTab === "password" && (
-  <div className="employees-card">
-    <h2>Change Password</h2>
-    {error && <p className="error-message">{error}</p>}
-    {message && <p className="success-message">{message}</p>}
-    <form onSubmit={handleChangeCompanyPassword} className="register-form">
-      <label>
-        Current Password
-        <input type="password" name="currentPassword" value={companyPasswordForm.currentPassword} onChange={handleCompanyPasswordChange} required />
-      </label>
-      <label>
-        New Password
-        <input type="password" name="newPassword" value={companyPasswordForm.newPassword} onChange={handleCompanyPasswordChange} required />
-      </label>
-      <label>
-        Confirm New Password
-        <input type="password" name="confirmPassword" value={companyPasswordForm.confirmPassword} onChange={handleCompanyPasswordChange} required />
-      </label>
-      <button type="submit">Update Password</button>
-    </form>
+  <div className="modern-form-page">
+    <div className="modern-settings-hero">
+      <div>
+        <h1>Change Password</h1>
+        <p>Update the company admin password used to access this portal.</p>
+      </div>
+      <div className="hero-art">🔐</div>
+    </div>
+
+    <div className="modern-card">
+      <div className="modern-card-header">
+        <div className="modern-icon blue">🔐</div>
+        <div>
+          <h2>Password Security</h2>
+          <p>Enter your current password, then choose a new password.</p>
+        </div>
+      </div>
+
+      {error && <p className="error-message">{error}</p>}
+      {message && <p className="success-message">{message}</p>}
+
+      <form onSubmit={handleChangeCompanyPassword} className="modern-dashboard-form password-dashboard-form">
+        <h3 className="form-section-title">Verify Current Password</h3>
+
+        <label className="full-width-field">
+          Current Password
+          <input
+            type="password"
+            name="currentPassword"
+            value={companyPasswordForm.currentPassword}
+            onChange={handleCompanyPasswordChange}
+            required
+          />
+        </label>
+
+        <h3 className="form-section-title">Create New Password</h3>
+
+        <label>
+          New Password
+          <input
+            type="password"
+            name="newPassword"
+            value={companyPasswordForm.newPassword}
+            onChange={handleCompanyPasswordChange}
+            required
+          />
+        </label>
+
+        <label>
+          Confirm New Password
+          <input
+            type="password"
+            name="confirmPassword"
+            value={companyPasswordForm.confirmPassword}
+            onChange={handleCompanyPasswordChange}
+            required
+          />
+        </label>
+
+        <div className="modern-form-note password-note">
+          <span>ℹ️</span>
+          Use a strong password with a mix of uppercase letters, lowercase letters, numbers, and symbols.
+        </div>
+
+        <div className="password-checklist full-width-field">
+          <div>
+            <span>✓</span>
+            Use at least 8 characters
+          </div>
+          <div>
+            <span>✓</span>
+            Avoid using your company name or email
+          </div>
+          <div>
+            <span>✓</span>
+            Do not reuse old passwords
+          </div>
+        </div>
+
+        <div className="form-actions">
+          <button type="submit" className="modern-save-btn">
+             Update Password
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 )}
+
       </div>
     </div>
   );
