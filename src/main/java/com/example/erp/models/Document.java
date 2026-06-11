@@ -19,8 +19,7 @@ public class Document {
 
     private Long fileSize;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "bytea")
     private byte[] data;
 
     @Column(name = "uploaded_at")

@@ -35,10 +35,7 @@ public class DocumentService {
     }
 
     public List<DocumentDto> getDocumentsByCompany(Long companyId) {
-        return documentRepository.findByCompanyIdOrderByUploadedAtDesc(companyId)
-                .stream()
-                .map(this::toDto)
-                .toList();
+        return documentRepository.findDocumentDtosByCompanyId(companyId);
     }
 
     public Document getDocumentEntity(Long id) {
