@@ -1,33 +1,20 @@
 spring:
-
   datasource:
-      url: ${DB_URL:jdbc:sqlserver://employeeerp.database.windows.net:1433;database=EmployeeErp;encrypt=true;trustServerCertificate=false;loginTimeout=30;}
-      username: ${DB_USERNAME:CloudSAaa8282d6}
-      password: ${DB_PASSWORD:Bubbleman12}
-      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
 
-      servlet:
-        multipart:
-          max-file-size: 10MB
-          max-request-size: 10MB
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
-      jpa:
-        hibernate:
-          ddl-auto: create
-        show-sql: true
-#  jpa:
-#    hibernate:
-#      ddl-auto: update
-#    database-platform: org.hibernate.dialect.SQLServerDialect
-#    properties:
-#      hibernate:
-#        dialect: org.hibernate.dialect.SQLServerDialect
-#    show-sql: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
 
-
-      server:
-      port: ${PORT:8080}
-
-
-
-
+server:
+  port: ${PORT:8080}
