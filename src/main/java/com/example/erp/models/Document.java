@@ -20,7 +20,7 @@ public class Document {
     private Long fileSize;
 
     @Lob
-    @Column(nullable = false, columnDefinition = "VARBINARY(MAX)")
+    @Column(nullable = false)
     private byte[] data;
 
     @Column(name = "uploaded_at")
