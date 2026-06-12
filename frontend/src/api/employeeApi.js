@@ -169,7 +169,13 @@ export async function updateTimeEntry(entryId, entryData) {
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+
+  let data;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
 
   if (!response.ok) {
     throw new Error(data?.message || data || "Failed to update time entry");

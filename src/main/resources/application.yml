@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://dpg-d8l1rkjeo5us73b072tg-a.oregon-postgres.render.com:5432/employeeerp?sslmode=require}
+    username: ${DB_USERNAME:employeeerp_user}
+    password: ${DB_PASSWORD:ZRjTnvm14MWYPh0JQawblLenFpG6zpLp}
     driver-class-name: org.postgresql.Driver
 
   servlet:
