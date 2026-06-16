@@ -3,6 +3,7 @@ import CompaniesPage from './pages/CompaniesPage';
 import EmployeesPage from './pages/EmployeesPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Pricing from './pages/Pricing.jsx';
 import Layout from './components/Layout';
 import {createBrowserRouter,RouterProvider,} from 'react-router-dom'
 
@@ -34,6 +35,10 @@ const router = createBrowserRouter([
         path: '/register',
         element: <Register />,
       },
+      {
+        path: '/pricing',
+        element: <Pricing />,
+      },
     ],
   },
 ]);
@@ -42,5 +47,3 @@ function App() {
 }
 
 export default App
-
-
