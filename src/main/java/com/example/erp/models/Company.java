@@ -43,6 +43,13 @@ public class Company {
 
     @Column(name = "country")
     private String country;
+
+    @Column
+    private String planCode = CompanyPlan.TRIAL.getCode();
+
+    @Column
+    private LocalDate planStartedOn;
+
     public Company() {
     }
 
@@ -66,6 +73,12 @@ public class Company {
 
     public String getCountry() { return country; }
     public void setCountry(String country) { this.country = country; }
+
+    public String getPlanCode() { return planCode; }
+    public void setPlanCode(String planCode) { this.planCode = planCode; }
+
+    public LocalDate getPlanStartedOn() { return planStartedOn; }
+    public void setPlanStartedOn(LocalDate planStartedOn) { this.planStartedOn = planStartedOn; }
 
     public void setPayrollType(String payrollType) {
         this.payrollType = payrollType;

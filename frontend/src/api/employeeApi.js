@@ -159,6 +159,31 @@ export async function fetchTimeEntries(employeeId) {
   return data;
 }
 
+export async function createTimeEntry(employeeId, entryData) {
+  const response = await fetch(`${TIME_URL}/${employeeId}/entries`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(entryData),
+  });
+
+  const text = await response.text();
+
+  let data;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || data || "Failed to create time entry");
+  }
+
+  return data;
+}
+
 export async function updateTimeEntry(entryId, entryData) {
   const response = await fetch(`${TIME_BASE_URL}/entries/${entryId}`, {
     method: "PUT",

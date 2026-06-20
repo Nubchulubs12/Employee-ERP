@@ -9,17 +9,20 @@ public class DocumentDto {
     private Long fileSize;
     private LocalDateTime uploadedAt;
     private Long companyId;
+    private String audience;
 
     public DocumentDto() {}
 
     public DocumentDto(Long id, String fileName, String fileType,
-                       Long fileSize, LocalDateTime uploadedAt, Long companyId) {
+                       Long fileSize, LocalDateTime uploadedAt, Long companyId,
+                       String audience) {
         this.id = id;
         this.fileName = fileName;
         this.fileType = fileType;
         this.fileSize = fileSize;
         this.uploadedAt = uploadedAt;
         this.companyId = companyId;
+        this.audience = audience;
     }
 
     public Long getId() { return id; }
@@ -39,4 +42,7 @@ public class DocumentDto {
 
     public Long getCompanyId() { return companyId; }
     public void setCompanyId(Long companyId) { this.companyId = companyId; }
+
+    public String getAudience() { return audience; }
+    public void setAudience(String audience) { this.audience = audience; }
 }

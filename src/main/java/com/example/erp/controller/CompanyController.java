@@ -39,6 +39,14 @@ public class CompanyController {
         return ResponseEntity.ok(companyService.updateCompanySettings(id, request));
     }
 
+    @PutMapping("/{id}/plan")
+    public ResponseEntity<CompanyDto> updateCompanyPlan(
+            @PathVariable Long id,
+            @RequestBody UpdateCompanyPlanRequest request
+    ) {
+        return ResponseEntity.ok(companyService.updateCompanyPlan(id, request));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<CompanyDto> updateCompanyInfo(
             @PathVariable Long id,

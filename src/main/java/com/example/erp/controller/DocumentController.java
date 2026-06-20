@@ -27,15 +27,30 @@ public class DocumentController {
     @PostMapping("/company/{companyId}")
     public ResponseEntity<DocumentDto> uploadDocument(
             @PathVariable Long companyId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "audience", required = false) String audience
+    ) throws IOException {
+        return ResponseEntity.ok(documentService.uploadDocument(companyId, file, audience));
+    }
+
+    @PostMapping("/company/{companyId}/audience/{audience}")
+    public ResponseEntity<DocumentDto> uploadDocumentForAudience(
+            @PathVariable Long companyId,
+            @PathVariable String audience,
             @RequestParam("file") MultipartFile file
     ) throws IOException {
-        return ResponseEntity.ok(documentService.uploadDocument(companyId, file));
+        return ResponseEntity.ok(documentService.uploadDocument(companyId, file, audience));
     }
 
 
     @GetMapping("/company/{companyId}")
     public ResponseEntity<List<DocumentDto>> getDocuments(@PathVariable Long companyId) {
         return ResponseEntity.ok(documentService.getDocumentsByCompany(companyId));
+    }
+
+    @GetMapping("/employee/{employeeId}")
+    public ResponseEntity<List<DocumentDto>> getEmployeeDocuments(@PathVariable Long employeeId) {
+        return ResponseEntity.ok(documentService.getDocumentsByEmployee(employeeId));
     }
 
 

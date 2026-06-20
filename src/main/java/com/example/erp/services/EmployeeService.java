@@ -3,6 +3,7 @@ package com.example.erp.services;
 import com.example.erp.Dto.*;
 import com.example.erp.data.CompanyRepository;
 import com.example.erp.models.Company;
+import com.example.erp.models.CompanyPlan;
 import com.example.erp.models.Employee;
 import com.example.erp.data.EmployeeRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -64,10 +65,25 @@ public class EmployeeService {
         return toDto(employee);
     }
 
+    public Employee getEmployeeEntityById(Long id) {
+        return employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+    }
+
     public EmployeeDto createEmployee(CreateEmployeeRequest request) {
         validateEmailUnique(request.getEmail(), null);
 
         Company company = companyService.getCompanyEntityById(request.getCompanyId());
+        CompanyPlan plan = CompanyPlan.fromCode(company.getPlanCode());
+        long currentEmployeeCount = employeeRepository.countByCompanyId(company.getId());
+
+        if (companyService.isTrialExpired(company)) {
+            throw new RuntimeException(CompanyService.TRIAL_EXPIRED_MESSAGE);
+        }
+
+        if (currentEmployeeCount >= plan.getEmployeeLimit()) {
+            throw new RuntimeException(companyService.getMaxEmployeesMessage(plan));
+        }
 
         Employee employee = new Employee();
         employee.setFirstName(request.getFirstName());

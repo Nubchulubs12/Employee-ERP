@@ -24,6 +24,7 @@ public class CreateCompanyRequest {
     private String state;
     private String zip;
     private String country;
+    private String planCode;
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -57,4 +58,7 @@ public class CreateCompanyRequest {
 
     public String getCountry() { return country; }
     public void setCountry(String country) { this.country = country; }
+
+    public String getPlanCode() { return planCode; }
+    public void setPlanCode(String planCode) { this.planCode = planCode; }
 }

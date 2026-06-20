@@ -1,9 +1,7 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import '../App.css';
 
 function Home() {
-  const navigate = useNavigate();
-
   return (
     <div className="home-page">
       <section className="hero">
@@ -27,17 +25,11 @@ function Home() {
           <div className="access-card">
             <h2>Company Access</h2>
             <p>
-              New company? Register your account first. Already registered?
-              Sign in here.
+              Already registered? Sign in here to manage your company portal.
             </p>
-            <div className="card-buttons">
-              <Link to="/register" className="btn primary-btn">
-                Register Company
-              </Link>
-              <Link to="/login/company" className="btn secondary-btn">
-                Company Login
-              </Link>
-            </div>
+            <Link to="/login/company" className="btn primary-btn">
+              Company Login
+            </Link>
           </div>
         </div>
       </section>

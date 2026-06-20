@@ -1,7 +1,17 @@
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/companies`;
 
-export async function fetchCompanyById(id) {
-  const response = await fetch(`${BASE_URL}/${id}`);
+function parseErrorMessage(data, fallback) {
+  if (!data) return fallback;
+  if (typeof data === "string") return data;
+  if (typeof data.message === "string" && data.message) return data.message;
+  if (typeof data.error === "string" && data.error) {
+    return data.path ? `${data.error} at ${data.path}` : data.error;
+  }
+  if (typeof data.detail === "string" && data.detail) return data.detail;
+  return fallback;
+}
+
+async function readResponse(response, fallbackMessage) {
   const text = await response.text();
   let data;
   try {
@@ -9,10 +19,21 @@ export async function fetchCompanyById(id) {
   } catch {
     data = text;
   }
+
   if (!response.ok) {
-    throw new Error(data?.message || data || 'Failed to load company');
+    const message = parseErrorMessage(
+      data,
+      `${fallbackMessage} (${response.status} ${response.statusText})`
+    );
+    throw new Error(message);
   }
+
   return data;
+}
+
+export async function fetchCompanyById(id) {
+  const response = await fetch(`${BASE_URL}/${id}`);
+  return readResponse(response, "Failed to load company");
 }
 
 export async function registerCompany(company) {
@@ -21,17 +42,7 @@ export async function registerCompany(company) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(company),
   });
-  const text = await response.text();
-  let data;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text;
-  }
-  if (!response.ok) {
-    throw new Error(data?.message || data || 'Registration failed');
-  }
-  return data;
+  return readResponse(response, "Registration failed");
 }
 
 export async function updateCompanySettings(id, settings) {
@@ -40,17 +51,16 @@ export async function updateCompanySettings(id, settings) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(settings),
   });
-  const text = await response.text();
-  let data;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text;
-  }
-  if (!response.ok) {
-    throw new Error(data?.message || data || "Failed to update company settings");
-  }
-  return data;
+  return readResponse(response, "Failed to update company settings");
+}
+
+export async function updateCompanyPlan(id, planCode) {
+  const response = await fetch(`${BASE_URL}/${id}/plan`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ planCode }),
+  });
+  return readResponse(response, "Failed to update company plan");
 }
 
 
@@ -60,17 +70,7 @@ export async function updateCompanyInfo(id, info) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(info),
   });
-  const text = await response.text();
-  let data;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text;
-  }
-  if (!response.ok) {
-    throw new Error(data?.message || data || "Failed to update company info");
-  }
-  return data;
+  return readResponse(response, "Failed to update company info");
 }
 
 export async function changeCompanyPassword(id, passwordData) {
@@ -79,15 +79,5 @@ export async function changeCompanyPassword(id, passwordData) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(passwordData),
   });
-  const text = await response.text();
-  let data;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text;
-  }
-  if (!response.ok) {
-    throw new Error(data?.message || data || "Failed to change password");
-  }
-  return data;
+  return readResponse(response, "Failed to change password");
 }

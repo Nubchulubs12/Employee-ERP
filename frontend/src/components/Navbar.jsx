@@ -48,7 +48,7 @@ function Navbar() {
 
       <div className="nav-right">
         {!isLoggedIn && location.pathname === "/" && (
-          <Link to="/pricing" className="nav-link nav-link--center">Pricing</Link>
+          <Link to="/pricing" className="nav-link nav-link--center">View Plans</Link>
         )}
         {isLoggedIn && <button onClick={handleLogout}>Logout</button>}
       </div>

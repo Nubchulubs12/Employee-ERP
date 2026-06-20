@@ -23,7 +23,7 @@ function formatWeekLabel(weekStart) {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
   const opts = { month: "short", day: "numeric", year: "numeric" };
-  return `${weekStart.toLocaleDateString("en-US", opts)} – ${weekEnd.toLocaleDateString("en-US", opts)}`;
+  return `${weekStart.toLocaleDateString("en-US", opts)} - ${weekEnd.toLocaleDateString("en-US", opts)}`;
 }
 
 function getWeekDays(weekStart) {
@@ -87,13 +87,17 @@ function calculateHours(clockInTime, clockOutTime) {
 }
 
 function getEntryStyle(entry) {
-  if (!entry.clockInTime || !entry.clockOutTime) {
+  if (!entry.clockInTime) {
     return { display: "none" };
   }
+
   const startMinutes = timeToMinutes(entry.clockInTime);
-  const endMinutes = timeToMinutes(entry.clockOutTime);
+  const endMinutes = entry.clockOutTime
+    ? timeToMinutes(entry.clockOutTime)
+    : startMinutes + 45;
   const gridStartMinutes = START_HOUR * 60;
   const gridEndMinutes = END_HOUR * 60;
+
   if (
     startMinutes === null ||
     endMinutes === null ||
@@ -103,70 +107,69 @@ function getEntryStyle(entry) {
   ) {
     return { display: "none" };
   }
+
   const visibleStart = Math.max(startMinutes, gridStartMinutes);
   const visibleEnd = Math.min(endMinutes, gridEndMinutes);
   const top = ((visibleStart - gridStartMinutes) / 60) * HOUR_HEIGHT;
   const height = ((visibleEnd - visibleStart) / 60) * HOUR_HEIGHT;
+
   return {
     top: `${top}px`,
-    height: `${Math.max(height, 24)}px`,
+    height: `${entry.clockOutTime ? Math.max(height, 44) : 28}px`,
   };
 }
 
 function getEntryDateKey(entry) {
   if (entry.clockInTime && entry.clockInTime.includes("T")) {
-    const date = new Date(entry.clockInTime);
-    return formatDateKey(date);
+    return formatDateKey(new Date(entry.clockInTime));
   }
   return entry.workDate;
 }
 
 function getDisplayEntries(timeEntries) {
   const segments = [];
-  for (const entry of timeEntries) {
 
-    if (entry.isPto) {
+  for (const entry of timeEntries) {
+    if (entry.isPto || !entry.clockInTime || !entry.clockOutTime) {
       segments.push({ ...entry, _segmentDateKey: getEntryDateKey(entry) });
       continue;
     }
-    if (!entry.clockInTime || !entry.clockOutTime) {
-      segments.push({ ...entry, _segmentDateKey: getEntryDateKey(entry) });
-      continue;
-    }
+
     const inKey = getEntryDateKey(entry);
-    let outKey;
-    if (entry.clockOutTime.includes("T")) {
-      outKey = formatDateKey(new Date(entry.clockOutTime));
-    } else {
-      outKey = entry.workDate;
-    }
+    const outKey = entry.clockOutTime.includes("T")
+      ? formatDateKey(new Date(entry.clockOutTime))
+      : entry.workDate;
+
     if (inKey === outKey) {
       segments.push({ ...entry, _segmentDateKey: inKey });
-    } else {
-      const midnightOut = entry.clockInTime.includes("T")
-        ? entry.clockInTime.split("T")[0] + "T23:59:59"
-        : "23:59:59";
-      segments.push({
-        ...entry,
-        id: `${entry.id}_seg1`,
-        clockOutTime: midnightOut,
-        _segmentDateKey: inKey,
-        _isSplit: true,
-        _splitType: "start",
-      });
-      const midnightIn = entry.clockOutTime.includes("T")
-        ? entry.clockOutTime.split("T")[0] + "T00:00:00"
-        : "00:00:00";
-      segments.push({
-        ...entry,
-        id: `${entry.id}_seg2`,
-        clockInTime: midnightIn,
-        _segmentDateKey: outKey,
-        _isSplit: true,
-        _splitType: "end",
-      });
+      continue;
     }
+
+    const midnightOut = entry.clockInTime.includes("T")
+      ? `${entry.clockInTime.split("T")[0]}T23:59:59`
+      : "23:59:59";
+    const midnightIn = entry.clockOutTime.includes("T")
+      ? `${entry.clockOutTime.split("T")[0]}T00:00:00`
+      : "00:00:00";
+
+    segments.push({
+      ...entry,
+      id: `${entry.id}_seg1`,
+      clockOutTime: midnightOut,
+      _segmentDateKey: inKey,
+      _isSplit: true,
+      _splitType: "start",
+    });
+    segments.push({
+      ...entry,
+      id: `${entry.id}_seg2`,
+      clockInTime: midnightIn,
+      _segmentDateKey: outKey,
+      _isSplit: true,
+      _splitType: "end",
+    });
   }
+
   return segments;
 }
 
@@ -182,6 +185,14 @@ function getDailyTotal(entries, dateKey) {
   return total.toFixed(2);
 }
 
+function getEntryLabel(entry) {
+  if (entry.isPto) return "PTO";
+  if (entry._splitType === "start") return `${formatTime(entry.clockInTime)} --`;
+  if (entry._splitType === "end") return `-- ${formatTime(entry.clockOutTime)}`;
+  if (!entry.clockOutTime) return `${formatTime(entry.clockInTime)} -> Still In`;
+  return `${formatTime(entry.clockInTime)} -> ${formatTime(entry.clockOutTime)}`;
+}
+
 export default function TimeSheetGrid({ timeEntries = [] }) {
   const [weekOffset, setWeekOffset] = useState(0);
 
@@ -190,8 +201,8 @@ export default function TimeSheetGrid({ timeEntries = [] }) {
 
   const weekDays = getWeekDays(weekStart);
   const totalGridHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
-
   const weekDateKeys = new Set(weekDays.map((d) => d.dateKey));
+
   const weekEntries = timeEntries.filter((entry) => {
     const inKey = getEntryDateKey(entry);
     let outKey = inKey;
@@ -202,13 +213,10 @@ export default function TimeSheetGrid({ timeEntries = [] }) {
   });
 
   const displayEntries = getDisplayEntries(weekEntries);
-
-
   const weeklyTotal = displayEntries
     .filter((entry) => entry.clockInTime && entry.clockOutTime)
     .reduce((sum, entry) => sum + calculateHours(entry.clockInTime, entry.clockOutTime), 0)
     .toFixed(2);
-
   const isCurrentWeek = weekOffset === 0;
 
   const navBtnStyle = {
@@ -235,23 +243,39 @@ export default function TimeSheetGrid({ timeEntries = [] }) {
 
         <div
           style={{
-            flex: 1, display: "flex", alignItems: "center",
-            justifyContent: "center", gap: "8px",
-            padding: "6px 0", borderBottom: "1px solid #e0e0e0",
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            padding: "6px 0",
+            borderBottom: "1px solid #e0e0e0",
           }}
         >
-          <button style={navBtnStyle} onClick={() => setWeekOffset((o) => o - 1)} aria-label="Previous week">‹</button>
+          <button style={navBtnStyle} onClick={() => setWeekOffset((o) => o - 1)} aria-label="Previous week">
+            &lsaquo;
+          </button>
 
           <span style={{ fontWeight: 600, fontSize: "0.95rem", minWidth: "210px", textAlign: "center" }}>
             {isCurrentWeek ? "Current Week" : formatWeekLabel(weekStart)}
           </span>
 
-          <button style={navBtnStyle} onClick={() => setWeekOffset((o) => o + 1)} aria-label="Next week">›</button>
+          <button style={navBtnStyle} onClick={() => setWeekOffset((o) => o + 1)} aria-label="Next week">
+            &rsaquo;
+          </button>
 
           {!isCurrentWeek && (
             <button
               onClick={() => setWeekOffset(0)}
-              style={{ fontSize: "0.78rem", padding: "2px 10px", border: "1px solid #bbb", borderRadius: "4px", cursor: "pointer", background: "none", color: "#000" }}
+              style={{
+                fontSize: "0.78rem",
+                padding: "2px 10px",
+                border: "1px solid #bbb",
+                borderRadius: "4px",
+                cursor: "pointer",
+                background: "none",
+                color: "#000",
+              }}
             >
               Today
             </button>
@@ -302,13 +326,7 @@ export default function TimeSheetGrid({ timeEntries = [] }) {
                         style={getEntryStyle(entry)}
                       >
                         <div className="timesheet-entry-time">
-                          {entry.isPto
-                            ? "🏖 PTO"
-                            : entry._splitType === "start"
-                            ? `${formatTime(entry.clockInTime)} – –`
-                            : entry._splitType === "end"
-                            ? `– – ${formatTime(entry.clockOutTime)}`
-                            : `${formatTime(entry.clockInTime)} – ${entry.clockOutTime ? formatTime(entry.clockOutTime) : "Still in"}`}
+                          {getEntryLabel(entry)}
                         </div>
 
                         {entry.clockOutTime && !entry.isPto && (

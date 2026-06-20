@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { fetchCompanyById, updateCompanySettings, updateCompanyInfo, changeCompanyPassword } from '../api/companyApi';
 import {
   fetchEmployees,
   createEmployee,
   deleteEmployee,
   updateEmployee,
+  createTimeEntry,
   fetchTimeEntries,
   updateTimeEntry,
   deleteTimeEntry,
@@ -15,6 +16,9 @@ import {
 } from '../api/employeeApi';
 import MiniTimeGrid from '../components/MiniTimeGrid';
 import DocumentsPanel from '../components/DocumentsPanel';
+
+const MAX_EMPLOYEES_MESSAGE = "you have reached the max number off employees this plan is allowed, upgrade to add more employees.";
+const GROWING_MAX_EMPLOYEES_MESSAGE = "You have reached the maximum limit of this plan";
 
 const US_STATES = [
   "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
@@ -26,6 +30,150 @@ const US_STATES = [
   "Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia",
   "Wisconsin","Wyoming",
 ];
+
+const WEEKDAY_PAYDAYS = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+];
+
+const SEMI_MONTHLY_PAYDAYS = [
+  { value: "FIRST_FIFTEENTH", label: "1st and 15th" },
+  { value: "FIFTEENTH_THIRTIETH", label: "15th and 30th" },
+];
+
+function formatPayrollType(type) {
+  if (type === "BIWEEKLY") return "Bi-Weekly";
+  if (type === "SEMI_MONTHLY") return "Semi-Monthly";
+  return "Weekly";
+}
+
+function formatPayday(payrollType, payday) {
+  if (payrollType === "SEMI_MONTHLY") {
+    return SEMI_MONTHLY_PAYDAYS.find((option) => option.value === payday)?.label || "1st and 15th";
+  }
+
+  const day = payday || "FRIDAY";
+  return day.charAt(0) + day.slice(1).toLowerCase();
+}
+
+function formatEmployeePayType(payType) {
+  if (payType === "SALARY") return "Salary";
+  if (payType === "CONTRACT_1099") return "1099";
+  return "Hourly";
+}
+
+function getEmployeePayRateLabel(payType) {
+  if (payType === "SALARY") return "Annual Salary:";
+  if (payType === "CONTRACT_1099") return "1099 Rate:";
+  return "Hourly Rate:";
+}
+
+function formatEmployeePayRate(employee) {
+  if (employee.payType === "SALARY") {
+    return `$${Number(employee.salaryRate || 0).toLocaleString()}/yr`;
+  }
+
+  return `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr`;
+}
+
+function normalizeCompanySettings(settings = {}) {
+  const payrollType = settings.payrollType || "WEEKLY";
+  const semiMonthlyValues = SEMI_MONTHLY_PAYDAYS.map((option) => option.value);
+  const payday = payrollType === "SEMI_MONTHLY"
+    ? semiMonthlyValues.includes(settings.payday)
+      ? settings.payday
+      : "FIRST_FIFTEENTH"
+    : WEEKDAY_PAYDAYS.includes(settings.payday)
+      ? settings.payday
+      : "FRIDAY";
+
+  return {
+    payrollType,
+    payday,
+    biweeklyStartDate: settings.biweeklyStartDate || "",
+  };
+}
+
+function addDays(date, days) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function getDaysInMonth(year, monthIndex) {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+function getSemiMonthlyDay(payday, index, year, monthIndex) {
+  const days = payday === "FIFTEENTH_THIRTIETH" ? [15, 30] : [1, 15];
+  return Math.min(days[index], getDaysInMonth(year, monthIndex));
+}
+
+function getSemiMonthlyPayDate(payday, year, monthIndex, index) {
+  return new Date(year, monthIndex, getSemiMonthlyDay(payday, index, year, monthIndex));
+}
+
+function getSemiMonthlyPeriod(payday) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let periodEnd = null;
+  let previousPayday = null;
+
+  for (let offset = -1; offset <= 0; offset += 1) {
+    const monthCursor = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+
+    for (let index = 0; index < 2; index += 1) {
+      const candidate = getSemiMonthlyPayDate(
+        payday,
+        monthCursor.getFullYear(),
+        monthCursor.getMonth(),
+        index
+      );
+
+      if (candidate <= today) {
+        previousPayday = periodEnd;
+        periodEnd = candidate;
+      }
+    }
+  }
+
+  if (!periodEnd) {
+    const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    previousPayday = getSemiMonthlyPayDate(
+      payday,
+      previousMonth.getFullYear(),
+      previousMonth.getMonth(),
+      0
+    );
+    periodEnd = getSemiMonthlyPayDate(
+      payday,
+      previousMonth.getFullYear(),
+      previousMonth.getMonth(),
+      1
+    );
+  }
+
+  if (!previousPayday) {
+    const previousMonth = new Date(periodEnd.getFullYear(), periodEnd.getMonth() - 1, 1);
+    previousPayday = getSemiMonthlyPayDate(
+      payday,
+      previousMonth.getFullYear(),
+      previousMonth.getMonth(),
+      1
+    );
+  }
+
+  return {
+    start: addDays(previousPayday, 1),
+    end: periodEnd,
+  };
+}
 
 
 function CompaniesPage() {
@@ -74,6 +222,7 @@ function CompaniesPage() {
   const [timeEntries, setTimeEntries] = useState([]);
   const [selectedEmployeePtoRequests, setSelectedEmployeePtoRequests] = useState([]);
   const [editingTimeEntryId, setEditingTimeEntryId] = useState(null);
+  const [addingTimeEntryDate, setAddingTimeEntryDate] = useState(null);
   const [timeForm, setTimeForm] = useState({ clockInTime: "", clockOutTime: "" });
 
   const [employeeForm, setEmployeeForm] = useState({
@@ -110,11 +259,7 @@ function CompaniesPage() {
 
         setEmployeeForm((prev) => ({ ...prev, companyId: data.id }));
 
-        setCompanySettingsForm({
-          payrollType: data.payrollType || "WEEKLY",
-          payday: data.payday || "FRIDAY",
-          biweeklyStartDate: data.biweeklyStartDate || "",
-        });
+        setCompanySettingsForm(normalizeCompanySettings(data));
 
         setCompanyInfoForm({
           name: data.name || "",
@@ -158,6 +303,7 @@ function CompaniesPage() {
     setSelectedEmployeePtoRequests([]);
     setEditingEmployeeId(null);
     setEditingTimeEntryId(null);
+    setAddingTimeEntryDate(null);
   }
 
   function handleCompanyInfoChange(e) {
@@ -181,7 +327,17 @@ function CompaniesPage() {
 
   function handleCompanySettingsChange(e) {
     const { name, value } = e.target;
-    setCompanySettingsForm((prev) => ({ ...prev, [name]: value }));
+    setCompanySettingsForm((prev) => {
+      if (name !== "payrollType") {
+        return { ...prev, [name]: value };
+      }
+
+      return {
+        ...prev,
+        payrollType: value,
+        payday: value === "SEMI_MONTHLY" ? "FIRST_FIFTEENTH" : "FRIDAY",
+      };
+    });
   }
 
   async function handleSaveCompanySettings(e) {
@@ -193,11 +349,7 @@ function CompaniesPage() {
       const updated = await updateCompanySettings(id, companySettingsForm);
       setCompany(updated);
 
-      setCompanySettingsForm({
-        payrollType: updated.payrollType || "WEEKLY",
-        payday: updated.payday || "FRIDAY",
-        biweeklyStartDate: updated.biweeklyStartDate || "",
-      });
+      setCompanySettingsForm(normalizeCompanySettings(updated));
 
       setMessage("Company settings saved successfully.");
     } catch (err) {
@@ -234,6 +386,7 @@ function CompaniesPage() {
       setSelectedEmployeePtoRequests([]);
       setEditingEmployeeId(null);
       setEditingTimeEntryId(null);
+      setAddingTimeEntryDate(null);
 
       const refreshedEmployees = await fetchEmployees(id);
       setEmployees(refreshedEmployees);
@@ -277,10 +430,26 @@ function CompaniesPage() {
     setEmployeeForm((prev) => ({ ...prev, [name]: value }));
   }
 
+  function getMaxEmployeesMessage() {
+    return company?.planCode === "GROWING"
+      ? GROWING_MAX_EMPLOYEES_MESSAGE
+      : MAX_EMPLOYEES_MESSAGE;
+  }
+
   async function handleAddEmployee(e) {
     e.preventDefault();
     setError("");
     setMessage("");
+
+    if (company?.trialExpired) {
+      window.alert("Your trial has expired. Upgrade to continue using the company portal.");
+      return;
+    }
+
+    if (company?.employeeLimit && employees.length >= company.employeeLimit) {
+      window.alert(getMaxEmployeesMessage());
+      return;
+    }
 
     try {
       const created = await createEmployee(employeeForm);
@@ -302,6 +471,12 @@ function CompaniesPage() {
 
       setMessage("Employee added successfully.");
     } catch (err) {
+      if (
+        err.message === MAX_EMPLOYEES_MESSAGE ||
+        err.message === GROWING_MAX_EMPLOYEES_MESSAGE
+      ) {
+        window.alert(err.message);
+      }
       setError(err.message || "Failed to create employee");
     }
   }
@@ -312,6 +487,7 @@ function CompaniesPage() {
     setSelectedEmployeeId(null);
     setSelectedEmployeePtoRequests([]);
     setEditingTimeEntryId(null);
+    setAddingTimeEntryDate(null);
     setEditingEmployeeId(employee.id);
 
     setEditForm({
@@ -394,6 +570,7 @@ function CompaniesPage() {
       setPtoRequests([]);
       setEditingEmployeeId(null);
       setEditingTimeEntryId(null);
+      setAddingTimeEntryDate(null);
       setSelectedEmployeePtoRequests([]);
 
       const [timeData, companyPtoData] = await Promise.all([
@@ -431,6 +608,7 @@ function CompaniesPage() {
   function handleCloseTimeManager() {
     setSelectedEmployeeId(null);
     setEditingTimeEntryId(null);
+    setAddingTimeEntryDate(null);
     setTimeEntries([]);
     setSelectedEmployeePtoRequests([]);
   }
@@ -439,10 +617,20 @@ function CompaniesPage() {
     if (entry.isPto) return;
 
     setEditingTimeEntryId(entry.id);
+    setAddingTimeEntryDate(null);
 
     setTimeForm({
       clockInTime: entry.clockInTime ? entry.clockInTime.slice(0, 16) : "",
       clockOutTime: entry.clockOutTime ? entry.clockOutTime.slice(0, 16) : "",
+    });
+  }
+
+  function handleAddTimeClick(dateKey) {
+    setEditingTimeEntryId(null);
+    setAddingTimeEntryDate(dateKey);
+    setTimeForm({
+      clockInTime: `${dateKey}T09:00`,
+      clockOutTime: `${dateKey}T17:00`,
     });
   }
 
@@ -552,6 +740,10 @@ function CompaniesPage() {
     }
 
     const rate = Number(employee.hourlyRate || 0);
+    if (employee.payType === "CONTRACT_1099") {
+      return { totalHours, regularHours: totalHours, overtimeHours: 0, grossPay: totalHours * rate };
+    }
+
     const grossPay = regularHours * rate + overtimeHours * rate * 1.5;
 
     return { totalHours, regularHours, overtimeHours, grossPay };
@@ -559,12 +751,6 @@ function CompaniesPage() {
 
   function toDateOnly(date) {
     return date.toISOString().split("T")[0];
-  }
-
-  function addDays(date, days) {
-    const copy = new Date(date);
-    copy.setDate(copy.getDate() + days);
-    return copy;
   }
 
   function getMostRecentWeekday(targetDayName) {
@@ -603,6 +789,17 @@ function CompaniesPage() {
         end,
         startText: toDateOnly(start),
         endText: toDateOnly(end),
+      };
+    }
+
+    if (payrollType === "SEMI_MONTHLY") {
+      const period = getSemiMonthlyPeriod(companySettingsForm.payday || "FIRST_FIFTEENTH");
+
+      return {
+        start: period.start,
+        end: period.end,
+        startText: toDateOnly(period.start),
+        endText: toDateOnly(period.end),
       };
     }
 
@@ -721,6 +918,15 @@ function CompaniesPage() {
             />
             Salary
           </label>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={payType === "CONTRACT_1099"}
+              onChange={() => onChange("CONTRACT_1099")}
+            />
+            1099
+          </label>
         </div>
       </div>
     );
@@ -744,6 +950,66 @@ function CompaniesPage() {
         .join(", ")
     : company.address || "N/A";
 
+  const employeeLimit = company.employeeLimit || 0;
+  const planUsageText = employeeLimit
+    ? `${employees.length} / ${employeeLimit} employees`
+    : `${employees.length} employees`;
+
+  if (company.trialExpired) {
+    return (
+      <div className="company-page">
+        <div className="company-left">
+          <div className="register-card">
+            <h1>{company.name}</h1>
+            <p><strong>Email:</strong> {company.email}</p>
+            <p><strong>Phone:</strong> {company.phone || "N/A"}</p>
+            <p><strong>Address:</strong> {displayAddress}</p>
+
+            <div className="company-plan-card">
+              <span>Current plan</span>
+              <strong>{company.planName || "Trial"}</strong>
+              <p>Expired on {company.trialEndsOn || "day 30"}</p>
+            </div>
+
+            <div className="company-sidebar-footer">
+              <Link to={`/pricing?upgradeCompanyId=${company.id}`}>
+                Upgrade plan
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="company-right">
+          <div className="trial-expired-card">
+            <h1>Trial expired</h1>
+            <p>Your 30 day trial has ended. Upgrade your plan to continue using the company portal.</p>
+            <Link to={`/pricing?upgradeCompanyId=${company.id}`} className="modern-save-btn">
+              View Plans
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  async function handleCreateTimeEntry(e) {
+    e.preventDefault();
+
+    try {
+      const created = await createTimeEntry(selectedEmployeeId, {
+        clockInTime: timeForm.clockInTime,
+        clockOutTime: timeForm.clockOutTime || null,
+      });
+
+      setTimeEntries((prev) => [created, ...prev]);
+      setAddingTimeEntryDate(null);
+      setTimeForm({ clockInTime: "", clockOutTime: "" });
+      setMessage("Time entry added successfully.");
+    } catch (err) {
+      setError(err.message || "Failed to create time entry");
+    }
+  }
+
   return (
     <div className="company-page">
       <div className="company-left">
@@ -752,6 +1018,12 @@ function CompaniesPage() {
           <p><strong>Email:</strong> {company.email}</p>
           <p><strong>Phone:</strong> {company.phone || "N/A"}</p>
           <p><strong>Address:</strong> {displayAddress}</p>
+
+          <div className="company-plan-card">
+            <span>Current plan</span>
+            <strong>{company.planName || "Trial"}</strong>
+            <p>{planUsageText}</p>
+          </div>
 
           <hr />
 
@@ -799,6 +1071,12 @@ function CompaniesPage() {
             <button type="button" className={`employee-tab${activeCompanyTab === "documents" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("documents")}>
               Documents
             </button>
+          </div>
+
+          <div className="company-sidebar-footer">
+            <Link to={`/pricing?upgradeCompanyId=${company.id}`}>
+              Upgrade plan
+            </Link>
           </div>
 
           {message && <p className="success-message">{message}</p>}
@@ -900,16 +1178,12 @@ function CompaniesPage() {
 
                           <div>
                             <span>Pay</span>
-                            <strong>
-                              {employee.payType === "SALARY"
-                                ? `$${Number(employee.salaryRate || 0).toLocaleString()}/yr`
-                                : `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr`}
-                            </strong>
+                            <strong>{formatEmployeePayRate(employee)}</strong>
                           </div>
 
                           <div>
                             <span>Pay Type</span>
-                            <strong>{employee.payType === "SALARY" ? "Salary" : "Hourly"}</strong>
+                            <strong>{formatEmployeePayType(employee.payType)}</strong>
                           </div>
 
                           <div>
@@ -1036,9 +1310,9 @@ function CompaniesPage() {
                               />
                             </div>
 
-                            {editForm.payType === "HOURLY" && (
+                            {(editForm.payType === "HOURLY" || editForm.payType === "CONTRACT_1099") && (
                               <label>
-                                Hourly Rate ($/hr)
+                                {editForm.payType === "CONTRACT_1099" ? "1099 Rate ($/hr)" : "Hourly Rate ($/hr)"}
                                 <input
                                   type="number"
                                   name="hourlyRate"
@@ -1247,19 +1521,54 @@ function CompaniesPage() {
                             </form>
                           )}
 
-                          {timeEntries.length === 0 && selectedEmployeePtoRequests.length === 0 ? (
-                            <div className="empty-state-card workspace-empty">
-                              <h3>No time entries found</h3>
-                              <p>No time entries or approved PTO found for this employee.</p>
-                            </div>
-                          ) : (
-                            <>
+                          {addingTimeEntryDate && (
+                            <form onSubmit={handleCreateTimeEntry} className="register-form time-edit-form workspace-time-edit">
+                              <h4>Add Entry</h4>
+
+                              <label>
+                                Clock In
+                                <input
+                                  type="datetime-local"
+                                  name="clockInTime"
+                                  value={timeForm.clockInTime}
+                                  onChange={handleTimeFormChange}
+                                  required
+                                />
+                              </label>
+
+                              <label>
+                                Clock Out
+                                <input
+                                  type="datetime-local"
+                                  name="clockOutTime"
+                                  value={timeForm.clockOutTime}
+                                  onChange={handleTimeFormChange}
+                                />
+                              </label>
+
+                              <div className="edit-buttons">
+                                <button type="submit">Add Time</button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAddingTimeEntryDate(null);
+                                    setTimeForm({ clockInTime: "", clockOutTime: "" });
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          )}
+
+                          <>
                               <div className="workspace-time-grid">
                                 <MiniTimeGrid
                                   timeEntries={timeEntries}
                                   ptoRequests={selectedEmployeePtoRequests}
                                   onEdit={handleEditTimeClick}
                                   onDelete={handleDeleteTimeEntry}
+                                  onAdd={handleAddTimeClick}
                                 />
                               </div>
 
@@ -1275,31 +1584,26 @@ function CompaniesPage() {
 
                                       <p>
                                         <strong>Payroll Type:</strong>{" "}
-                                        {companySettingsForm.payrollType === "BIWEEKLY"
-                                          ? "Bi-Weekly"
-                                          : "Weekly"}
+                                        {formatPayrollType(companySettingsForm.payrollType)}
                                       </p>
                                     </div>
 
                                     <div className="workspace-payroll-grid">
                                       <p><strong>Pay Period:</strong> {period.startText} — {period.endText}</p>
-                                      <p><strong>Payday:</strong> {companySettingsForm.payday || "FRIDAY"}</p>
+                                      <p>
+                                        <strong>Payday:</strong>{" "}
+                                        {formatPayday(companySettingsForm.payrollType, companySettingsForm.payday)}
+                                      </p>
                                       <p><strong>Total Hours:</strong> {payroll.totalHours.toFixed(2)}</p>
                                       <p><strong>Regular Hours:</strong> {payroll.regularHours.toFixed(2)}</p>
 
-                                      {employee.payType !== "SALARY" && (
+                                      {employee.payType === "HOURLY" && (
                                         <p><strong>Overtime Hours:</strong> {payroll.overtimeHours.toFixed(2)}</p>
                                       )}
 
                                       <p>
-                                        <strong>
-                                          {employee.payType === "SALARY"
-                                            ? "Annual Salary:"
-                                            : "Hourly Rate:"}
-                                        </strong>{" "}
-                                        {employee.payType === "SALARY"
-                                          ? `$${Number(employee.salaryRate || 0).toLocaleString()}/yr`
-                                          : `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr`}
+                                        <strong>{getEmployeePayRateLabel(employee.payType)}</strong>{" "}
+                                        {formatEmployeePayRate(employee)}
                                       </p>
 
                                       <p className="gross-pay-highlight">
@@ -1309,8 +1613,7 @@ function CompaniesPage() {
                                   </div>
                                 );
                               })()}
-                            </>
-                          )}
+                          </>
                         </div>
                       );
                     })()}
@@ -1340,7 +1643,13 @@ function CompaniesPage() {
                 </div>
               </div>
 
-              <form onSubmit={handleAddEmployee} className="modern-dashboard-form">
+              <form
+                onSubmit={handleAddEmployee}
+                className="modern-dashboard-form"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+              >
                 <h3 className="form-section-title">Employee Information</h3>
 
                 <label>
@@ -1348,6 +1657,9 @@ function CompaniesPage() {
                   <input
                     type="text"
                     name="firstName"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     value={employeeForm.firstName}
                     onChange={handleEmployeeChange}
                     required
@@ -1359,6 +1671,9 @@ function CompaniesPage() {
                   <input
                     type="text"
                     name="lastName"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     value={employeeForm.lastName}
                     onChange={handleEmployeeChange}
                     required
@@ -1370,6 +1685,9 @@ function CompaniesPage() {
                   <input
                     type="email"
                     name="email"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     value={employeeForm.email}
                     onChange={handleEmployeeChange}
                     required
@@ -1381,6 +1699,9 @@ function CompaniesPage() {
                   <input
                     type="password"
                     name="password"
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     value={employeeForm.password}
                     onChange={handleEmployeeChange}
                     required
@@ -1392,6 +1713,9 @@ function CompaniesPage() {
                   <input
                     type="text"
                     name="jobTitle"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     value={employeeForm.jobTitle}
                     onChange={handleEmployeeChange}
                     placeholder="Example: Sales Associate"
@@ -1403,6 +1727,7 @@ function CompaniesPage() {
                   <input
                     type="date"
                     name="hireDate"
+                    autoComplete="off"
                     value={employeeForm.hireDate}
                     onChange={handleEmployeeChange}
                   />
@@ -1424,12 +1749,13 @@ function CompaniesPage() {
                   />
                 </div>
 
-                {employeeForm.payType === "HOURLY" && (
+                {(employeeForm.payType === "HOURLY" || employeeForm.payType === "CONTRACT_1099") && (
                   <label>
-                    Hourly Rate ($/hr)
+                    {employeeForm.payType === "CONTRACT_1099" ? "1099 Rate ($/hr)" : "Hourly Rate ($/hr)"}
                     <input
                       type="number"
                       name="hourlyRate"
+                      autoComplete="off"
                       value={employeeForm.hourlyRate}
                       onChange={handleEmployeeChange}
                       min="0"
@@ -1445,6 +1771,7 @@ function CompaniesPage() {
                     <input
                       type="number"
                       name="salaryRate"
+                      autoComplete="off"
                       value={employeeForm.salaryRate}
                       onChange={handleEmployeeChange}
                       min="0"
@@ -1459,6 +1786,7 @@ function CompaniesPage() {
                   <input
                     type="number"
                     name="ptoBalanceHours"
+                    autoComplete="off"
                     value={employeeForm.ptoBalanceHours}
                     onChange={handleEmployeeChange}
                     min="0"
@@ -1654,6 +1982,7 @@ function CompaniesPage() {
                     >
                       <option value="WEEKLY">Weekly</option>
                       <option value="BIWEEKLY">Bi-Weekly</option>
+                      <option value="SEMI_MONTHLY">Semi-Monthly</option>
                     </select>
                   </label>
 
@@ -1664,19 +1993,17 @@ function CompaniesPage() {
                       value={companySettingsForm.payday}
                       onChange={handleCompanySettingsChange}
                     >
-                      {[
-                        "MONDAY",
-                        "TUESDAY",
-                        "WEDNESDAY",
-                        "THURSDAY",
-                        "FRIDAY",
-                        "SATURDAY",
-                        "SUNDAY",
-                      ].map((d) => (
-                        <option key={d} value={d}>
-                          {d.charAt(0) + d.slice(1).toLowerCase()}
-                        </option>
-                      ))}
+                      {companySettingsForm.payrollType === "SEMI_MONTHLY"
+                        ? SEMI_MONTHLY_PAYDAYS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))
+                        : WEEKDAY_PAYDAYS.map((d) => (
+                            <option key={d} value={d}>
+                              {formatPayday(companySettingsForm.payrollType, d)}
+                            </option>
+                          ))}
                     </select>
                   </label>
 
@@ -1728,11 +2055,7 @@ function CompaniesPage() {
                         <div className="overview-icon">📅</div>
                         <div>
                           <span>Payroll Type</span>
-                          <strong>
-                            {companySettingsForm.payrollType === "BIWEEKLY"
-                              ? "Bi-Weekly"
-                              : "Weekly"}
-                          </strong>
+                          <strong>{formatPayrollType(companySettingsForm.payrollType)}</strong>
                         </div>
                       </div>
 
@@ -1740,10 +2063,7 @@ function CompaniesPage() {
                         <div className="overview-icon">🗓️</div>
                         <div>
                           <span>Payday</span>
-                          <strong>
-                            {companySettingsForm.payday.charAt(0) +
-                              companySettingsForm.payday.slice(1).toLowerCase()}
-                          </strong>
+                          <strong>{formatPayday(companySettingsForm.payrollType, companySettingsForm.payday)}</strong>
                         </div>
                       </div>
 
@@ -1766,10 +2086,11 @@ function CompaniesPage() {
                           Payroll is calculated{" "}
                           {companySettingsForm.payrollType === "BIWEEKLY"
                             ? "every two weeks"
-                            : "every week"}{" "}
+                            : companySettingsForm.payrollType === "SEMI_MONTHLY"
+                              ? "twice a month"
+                              : "every week"}{" "}
                           and employees will be paid on{" "}
-                          {companySettingsForm.payday.charAt(0) +
-                            companySettingsForm.payday.slice(1).toLowerCase()}.
+                          {formatPayday(companySettingsForm.payrollType, companySettingsForm.payday)}.
                           The current pay period is {period.startText} through {period.endText}.
                         </p>
                       </div>

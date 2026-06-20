@@ -4,13 +4,19 @@ import com.example.erp.Dto.*;
 import com.example.erp.data.EmployeeRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.example.erp.models.Company;
+import com.example.erp.models.CompanyPlan;
 import com.example.erp.data.CompanyRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
 public class CompanyService {
+    public static final String MAX_EMPLOYEES_MESSAGE = "you have reached the max number off employees this plan is allowed, upgrade to add more employees.";
+    public static final String GROWING_MAX_EMPLOYEES_MESSAGE = "You have reached the maximum limit of this plan";
+    public static final String TRIAL_EXPIRED_MESSAGE = "Your trial has expired. Upgrade to continue using the company portal.";
+    private static final int TRIAL_DAYS = 30;
 
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
@@ -41,11 +47,14 @@ public class CompanyService {
         }
 
         Company company = new Company();
+        CompanyPlan plan = CompanyPlan.fromCode(request.getPlanCode());
         company.setName(request.getName());
         company.setEmail(request.getEmail());
         company.setPhone(request.getPhone());
         company.setAddress(request.getAddress());
         company.setPwHash(passwordEncoder.encode(request.getPassword()));
+        company.setPlanCode(plan.getCode());
+        company.setPlanStartedOn(LocalDate.now());
         company.setStreetAddress(request.getStreetAddress());
         company.setAddressLine2(request.getAddressLine2());
         company.setCity(request.getCity());
@@ -59,12 +68,15 @@ public class CompanyService {
     public CompanyDto getCompanyById(Long id) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
+        ensurePlanStartedOn(company);
         return toDto(company);
     }
 
     public Company getCompanyEntityById(Long id) {
-        return companyRepository.findById(id)
+        Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
+        ensurePlanStartedOn(company);
+        return company;
     }
 
     public CompanyDto updateCompanySettings(Long id, UpdateCompanySettingsRequest request) {
@@ -75,6 +87,21 @@ public class CompanyService {
         company.setPayday(request.getPayday());
         company.setBiweeklyStartDate(request.getBiweeklyStartDate());
 
+        return toDto(companyRepository.save(company));
+    }
+
+    public CompanyDto updateCompanyPlan(Long id, UpdateCompanyPlanRequest request) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
+        CompanyPlan plan = CompanyPlan.fromCode(request.getPlanCode());
+        long currentEmployeeCount = employeeRepository.countByCompanyId(company.getId());
+
+        if (currentEmployeeCount > plan.getEmployeeLimit()) {
+            throw new RuntimeException(getMaxEmployeesMessage(plan));
+        }
+
+        company.setPlanCode(plan.getCode());
+        company.setPlanStartedOn(LocalDate.now());
         return toDto(companyRepository.save(company));
     }
 
@@ -122,6 +149,10 @@ public class CompanyService {
     }
 
     private CompanyDto toDto(Company company) {
+        CompanyPlan plan = CompanyPlan.fromCode(company.getPlanCode());
+        LocalDate planStartedOn = company.getPlanStartedOn();
+        LocalDate trialEndsOn = getTrialEndsOn(company);
+
         return new CompanyDto(
                 company.getId(),
                 company.getName(),
@@ -136,7 +167,47 @@ public class CompanyService {
                 company.getCountry(),
                 company.getPayrollType(),
                 company.getPayday(),
-                company.getBiweeklyStartDate()
+                company.getBiweeklyStartDate(),
+                plan.getCode(),
+                plan.getDisplayName(),
+                plan.getEmployeeLimit(),
+                planStartedOn,
+                trialEndsOn,
+                isTrialExpired(company)
         );
+    }
+
+    public boolean isTrialExpired(Company company) {
+        CompanyPlan plan = CompanyPlan.fromCode(company.getPlanCode());
+        LocalDate trialEndsOn = getTrialEndsOn(company);
+
+        return plan.isTrial()
+                && trialEndsOn != null
+                && LocalDate.now().isAfter(trialEndsOn);
+    }
+
+    public LocalDate getTrialEndsOn(Company company) {
+        CompanyPlan plan = CompanyPlan.fromCode(company.getPlanCode());
+
+        if (!plan.isTrial() || company.getPlanStartedOn() == null) {
+            return null;
+        }
+
+        return company.getPlanStartedOn().plusDays(TRIAL_DAYS);
+    }
+
+    public String getMaxEmployeesMessage(CompanyPlan plan) {
+        return plan == CompanyPlan.GROWING
+                ? GROWING_MAX_EMPLOYEES_MESSAGE
+                : MAX_EMPLOYEES_MESSAGE;
+    }
+
+    private void ensurePlanStartedOn(Company company) {
+        CompanyPlan plan = CompanyPlan.fromCode(company.getPlanCode());
+
+        if (plan.isTrial() && company.getPlanStartedOn() == null) {
+            company.setPlanStartedOn(LocalDate.now());
+            companyRepository.save(company);
+        }
     }
 }

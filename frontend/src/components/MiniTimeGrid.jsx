@@ -20,7 +20,7 @@ function formatWeekLabel(weekStart) {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
   const opts = { month: "short", day: "numeric", year: "numeric" };
-  return `${weekStart.toLocaleDateString("en-US", opts)} – ${weekEnd.toLocaleDateString("en-US", opts)}`;
+  return `${weekStart.toLocaleDateString("en-US", opts)} - ${weekEnd.toLocaleDateString("en-US", opts)}`;
 }
 
 function getWeekDays(weekStart) {
@@ -78,7 +78,6 @@ function buildPtoEntries(ptoRequests = []) {
         Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
       const hoursPerDay = Number(request.hoursRequested || 0) / totalDays;
-
       const entries = [];
       const current = new Date(start);
 
@@ -106,6 +105,7 @@ export default function MiniTimeGrid({
   ptoRequests = [],
   onEdit,
   onDelete,
+  onAdd,
 }) {
   const [weekOffset, setWeekOffset] = useState(0);
 
@@ -115,7 +115,6 @@ export default function MiniTimeGrid({
   const weekDays = getWeekDays(weekStart);
   const isCurrentWeek = weekOffset === 0;
   const weekDateKeys = new Set(weekDays.map((d) => d.dateKey));
-
   const displayEntries = [...timeEntries, ...buildPtoEntries(ptoRequests)];
 
   const weekEntries = displayEntries.filter((entry) => {
@@ -146,22 +145,28 @@ export default function MiniTimeGrid({
 
   return (
     <div className="mini-time-grid">
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        padding: "6px 0",
-        borderBottom: "1px solid #e0e0e0",
-        marginBottom: 8,
-      }}>
-        <button style={navBtnStyle} onClick={() => setWeekOffset((o) => o - 1)}>‹</button>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          padding: "6px 0",
+          borderBottom: "1px solid #e0e0e0",
+          marginBottom: 8,
+        }}
+      >
+        <button style={navBtnStyle} onClick={() => setWeekOffset((o) => o - 1)}>
+          &lsaquo;
+        </button>
 
         <span style={{ fontWeight: 600, fontSize: "0.9rem", minWidth: 220, textAlign: "center" }}>
           {isCurrentWeek ? "Current Week" : formatWeekLabel(weekStart)}
         </span>
 
-        <button style={navBtnStyle} onClick={() => setWeekOffset((o) => o + 1)}>›</button>
+        <button style={navBtnStyle} onClick={() => setWeekOffset((o) => o + 1)}>
+          &rsaquo;
+        </button>
 
         {!isCurrentWeek && (
           <button
@@ -183,7 +188,9 @@ export default function MiniTimeGrid({
 
       <div className="mini-grid-days">
         {weekDays.map((day) => {
-          const dayEntries = weekEntries.filter((e) => getEntryDateKey(e) === day.dateKey);
+          const dayEntries = weekEntries.filter((entry) => getEntryDateKey(entry) === day.dateKey);
+          const hasTimeEntry = timeEntries.some((entry) => getEntryDateKey(entry) === day.dateKey);
+          const showAddButton = Boolean(onAdd) && !hasTimeEntry;
 
           return (
             <div key={day.dateKey} className="mini-grid-day">
@@ -193,60 +200,88 @@ export default function MiniTimeGrid({
 
               <div className="mini-grid-day-body">
                 {dayEntries.length === 0 ? (
-                  <div className="mini-grid-empty">—</div>
-                ) : (
-                  dayEntries.map((entry) => {
-                    const hrs = calcHours(entry).toFixed(2);
-
-                    return (
-                      <div
-                        key={entry.id}
-                        className={`mini-grid-entry${entry.isPto ? " mini-grid-entry--pto" : ""}`}
+                  <div className="mini-grid-empty">
+                    {showAddButton ? (
+                      <button
+                        type="button"
+                        className="mini-btn mini-btn-add"
+                        onClick={() => onAdd(day.dateKey)}
                       >
-                        {entry.isPto ? (
-                          <>
-                            <div className="mini-grid-entry-times">
-                              <strong>🏖 PTO</strong>
-                            </div>
-                            <div className="mini-grid-entry-hrs">{hrs} hrs</div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="mini-grid-entry-times">
-                              <span>{formatDisplayTime(entry.clockInTime)}</span>
-                              <span className="mini-grid-sep">→</span>
-                              <span>
-                                {entry.clockOutTime
-                                  ? formatDisplayTime(entry.clockOutTime)
-                                  : <em>Still In</em>}
-                              </span>
-                            </div>
+                        Add
+                      </button>
+                    ) : (
+                      "-"
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {dayEntries.map((entry) => {
+                      const hrs = calcHours(entry).toFixed(2);
 
-                            {entry.clockOutTime && (
+                      return (
+                        <div
+                          key={entry.id}
+                          className={`mini-grid-entry${entry.isPto ? " mini-grid-entry--pto" : ""}`}
+                        >
+                          {entry.isPto ? (
+                            <>
+                              <div className="mini-grid-entry-times">
+                                <strong>PTO</strong>
+                              </div>
                               <div className="mini-grid-entry-hrs">{hrs} hrs</div>
-                            )}
+                            </>
+                          ) : (
+                            <>
+                              <div className="mini-grid-entry-times">
+                                <span>{formatDisplayTime(entry.clockInTime)}</span>
+                                <span className="mini-grid-sep">-&gt;</span>
+                                <span>
+                                  {entry.clockOutTime ? (
+                                    formatDisplayTime(entry.clockOutTime)
+                                  ) : (
+                                    <em>Still In</em>
+                                  )}
+                                </span>
+                              </div>
 
-                            <div className="mini-grid-entry-actions">
-                              <button
-                                type="button"
-                                className="mini-btn mini-btn-edit"
-                                onClick={() => onEdit(entry)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                className="mini-btn mini-btn-delete"
-                                onClick={() => onDelete(entry.id)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })
+                              {entry.clockOutTime && (
+                                <div className="mini-grid-entry-hrs">{hrs} hrs</div>
+                              )}
+
+                              {entry.clockOutTime && (
+                                <div className="mini-grid-entry-actions">
+                                  <button
+                                    type="button"
+                                    className="mini-btn mini-btn-edit"
+                                    onClick={() => onEdit(entry)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="mini-btn mini-btn-delete"
+                                    onClick={() => onDelete(entry.id)}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {showAddButton && (
+                      <button
+                        type="button"
+                        className="mini-btn mini-btn-add mini-btn-add-inline"
+                        onClick={() => onAdd(day.dateKey)}
+                      >
+                        Add
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -254,15 +289,17 @@ export default function MiniTimeGrid({
         })}
       </div>
 
-      <div style={{
-        display: "flex",
-        justifyContent: "flex-end",
-        padding: "8px 12px",
-        borderTop: "2px solid #e0e0e0",
-        fontWeight: 600,
-        fontSize: "0.9rem",
-        marginTop: 8,
-      }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          padding: "8px 12px",
+          borderTop: "2px solid #e0e0e0",
+          fontWeight: 600,
+          fontSize: "0.9rem",
+          marginTop: 8,
+        }}
+      >
         Week Total &nbsp; {weeklyTotal} hrs
       </div>
     </div>

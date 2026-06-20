@@ -1,6 +1,16 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { registerCompany } from '../api/companyApi';
+
+const PLANS = [
+  { code: "TRIAL", name: "Trial", limit: "Up to 10 employees for 30 days" },
+  { code: "SMALL", name: "Small", limit: "Up to 25 employees" },
+  { code: "GROWING", name: "Growing", limit: "Up to 100 employees" },
+];
+
+function getPlan(code) {
+  return PLANS.find((plan) => plan.code === code) || PLANS[0];
+}
 
 const US_STATES = [
   "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
@@ -15,8 +25,11 @@ const US_STATES = [
 
 function Register() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedPlan = getPlan(searchParams.get("plan"));
 
   const [formData, setFormData] = useState({
+    planCode: selectedPlan.code,
     name: "",
     email: "",
     password: "",
@@ -62,7 +75,27 @@ function Register() {
         <h1>Register Company</h1>
         <p className="register-subtext">Create your company account to get started.</p>
 
+        <div className="selected-plan-summary">
+          <div>
+            <span>Selected plan</span>
+            <strong>{getPlan(formData.planCode).name}</strong>
+            <p>{getPlan(formData.planCode).limit}</p>
+          </div>
+          <Link to="/pricing">Change</Link>
+        </div>
+
         <form onSubmit={handleSubmit} className="register-form">
+          <label>
+            Plan
+            <select name="planCode" value={formData.planCode} onChange={handleChange} required>
+              {PLANS.map((plan) => (
+                <option key={plan.code} value={plan.code}>
+                  {plan.name} - {plan.limit}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label>
             Company Name
             <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Enter company name" required />

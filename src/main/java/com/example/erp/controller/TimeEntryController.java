@@ -27,6 +27,14 @@ public class TimeEntryController {
     public ResponseEntity<TimeEntryDto> clockOut(@PathVariable Long employeeId) {
         return ResponseEntity.ok(timeEntryService.clockOut(employeeId));
     }
+    @PostMapping("/employees/{employeeId}/entries")
+    public ResponseEntity<TimeEntryDto> createTimeEntry(
+            @PathVariable Long employeeId,
+            @RequestBody UpdateTimeEntryRequest request
+    ) {
+        return ResponseEntity.ok(timeEntryService.createTimeEntry(employeeId, request));
+    }
+
     @PutMapping("/entries/{entryId}")
     public ResponseEntity<TimeEntryDto> updateTimeEntry(
             @PathVariable Long entryId,

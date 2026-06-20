@@ -47,6 +47,25 @@ public class TimeEntryService {
         return toDto(timeEntryRepository.save(entry));
     }
 
+    public TimeEntryDto createTimeEntry(Long employeeId, UpdateTimeEntryRequest request) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + employeeId));
+
+        validateTimeEntryRequest(request);
+
+        if (timeEntryRepository.existsByEmployeeIdAndWorkDate(employeeId, request.getClockInTime().toLocalDate())) {
+            throw new RuntimeException("A time entry already exists for this day.");
+        }
+
+        TimeEntry entry = new TimeEntry();
+        entry.setEmployee(employee);
+        entry.setClockInTime(request.getClockInTime());
+        entry.setClockOutTime(request.getClockOutTime());
+        entry.setWorkDate(request.getClockInTime().toLocalDate());
+
+        return toDto(timeEntryRepository.save(entry));
+    }
+
     public TimeEntryDto clockOut(Long employeeId) {
         TimeEntry entry = timeEntryRepository
                 .findFirstByEmployeeIdAndClockOutTimeIsNullOrderByClockInTimeDesc(employeeId)
@@ -69,14 +88,7 @@ public class TimeEntryService {
         TimeEntry entry = timeEntryRepository.findById(entryId)
                 .orElseThrow(() -> new RuntimeException("Time entry not found with id: " + entryId));
 
-        if (request.getClockInTime() == null) {
-            throw new RuntimeException("Clock in time is required.");
-        }
-
-        if (request.getClockOutTime() != null &&
-                request.getClockOutTime().isBefore(request.getClockInTime())) {
-            throw new RuntimeException("Clock out time cannot be before clock in time.");
-        }
+        validateTimeEntryRequest(request);
 
         entry.setClockInTime(request.getClockInTime());
         entry.setClockOutTime(request.getClockOutTime());
@@ -99,5 +111,16 @@ public class TimeEntryService {
                 entry.getClockInTime(),
                 entry.getClockOutTime()
         );
+    }
+
+    private void validateTimeEntryRequest(UpdateTimeEntryRequest request) {
+        if (request.getClockInTime() == null) {
+            throw new RuntimeException("Clock in time is required.");
+        }
+
+        if (request.getClockOutTime() != null &&
+                request.getClockOutTime().isBefore(request.getClockInTime())) {
+            throw new RuntimeException("Clock out time cannot be before clock in time.");
+        }
     }
 }

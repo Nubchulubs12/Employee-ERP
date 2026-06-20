@@ -17,6 +17,12 @@ public class CompanyDto {
     private String payrollType;
     private String payday;
     private LocalDate biweeklyStartDate;
+    private String planCode;
+    private String planName;
+    private Integer employeeLimit;
+    private LocalDate planStartedOn;
+    private LocalDate trialEndsOn;
+    private Boolean trialExpired;
 
     public CompanyDto() {}
 
@@ -34,7 +40,13 @@ public class CompanyDto {
             String country,
             String payrollType,
             String payday,
-            LocalDate biweeklyStartDate
+            LocalDate biweeklyStartDate,
+            String planCode,
+            String planName,
+            Integer employeeLimit,
+            LocalDate planStartedOn,
+            LocalDate trialEndsOn,
+            Boolean trialExpired
     ) {
         this.id = id;
         this.name = name;
@@ -50,6 +62,12 @@ public class CompanyDto {
         this.payrollType = payrollType;
         this.payday = payday;
         this.biweeklyStartDate = biweeklyStartDate;
+        this.planCode = planCode;
+        this.planName = planName;
+        this.employeeLimit = employeeLimit;
+        this.planStartedOn = planStartedOn;
+        this.trialEndsOn = trialEndsOn;
+        this.trialExpired = trialExpired;
     }
 
     public Long getId() { return id; }
@@ -93,4 +111,22 @@ public class CompanyDto {
 
     public LocalDate getBiweeklyStartDate() { return biweeklyStartDate; }
     public void setBiweeklyStartDate(LocalDate biweeklyStartDate) { this.biweeklyStartDate = biweeklyStartDate; }
+
+    public String getPlanCode() { return planCode; }
+    public void setPlanCode(String planCode) { this.planCode = planCode; }
+
+    public String getPlanName() { return planName; }
+    public void setPlanName(String planName) { this.planName = planName; }
+
+    public Integer getEmployeeLimit() { return employeeLimit; }
+    public void setEmployeeLimit(Integer employeeLimit) { this.employeeLimit = employeeLimit; }
+
+    public LocalDate getPlanStartedOn() { return planStartedOn; }
+    public void setPlanStartedOn(LocalDate planStartedOn) { this.planStartedOn = planStartedOn; }
+
+    public LocalDate getTrialEndsOn() { return trialEndsOn; }
+    public void setTrialEndsOn(LocalDate trialEndsOn) { this.trialEndsOn = trialEndsOn; }
+
+    public Boolean getTrialExpired() { return trialExpired; }
+    public void setTrialExpired(Boolean trialExpired) { this.trialExpired = trialExpired; }
 }

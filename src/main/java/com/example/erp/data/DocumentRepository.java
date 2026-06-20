@@ -16,11 +16,32 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
             d.fileType,
             d.fileSize,
             d.uploadedAt,
-            d.company.id
+            d.company.id,
+            COALESCE(d.audience, 'ALL')
         )
         FROM Document d
         WHERE d.company.id = :companyId
         ORDER BY d.uploadedAt DESC
     """)
     List<DocumentDto> findDocumentDtosByCompanyId(Long companyId);
+
+    @Query("""
+        SELECT new com.example.erp.Dto.DocumentDto(
+            d.id,
+            d.fileName,
+            d.fileType,
+            d.fileSize,
+            d.uploadedAt,
+            d.company.id,
+            COALESCE(d.audience, 'ALL')
+        )
+        FROM Document d
+        WHERE d.company.id = :companyId
+          AND (
+            COALESCE(d.audience, 'ALL') = 'ALL'
+            OR COALESCE(d.audience, 'ALL') = :audience
+          )
+        ORDER BY d.uploadedAt DESC
+    """)
+    List<DocumentDto> findDocumentDtosByCompanyIdAndAudience(Long companyId, String audience);
 }

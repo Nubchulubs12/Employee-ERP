@@ -25,6 +25,38 @@ const US_STATES = [
   "Wisconsin","Wyoming",
 ];
 
+const SEMI_MONTHLY_PAYDAYS = [
+  { value: "FIRST_FIFTEENTH", label: "1st and 15th" },
+  { value: "FIFTEENTH_THIRTIETH", label: "15th and 30th" },
+];
+
+function formatPayrollType(type) {
+  if (type === "BIWEEKLY") return "Bi-weekly";
+  if (type === "SEMI_MONTHLY") return "Semi-monthly";
+  return "Weekly";
+}
+
+function formatPayday(payrollType, payday) {
+  if (payrollType === "SEMI_MONTHLY") {
+    return SEMI_MONTHLY_PAYDAYS.find((option) => option.value === payday)?.label || "1st and 15th";
+  }
+
+  const day = payday || "FRIDAY";
+  return day.charAt(0) + day.slice(1).toLowerCase();
+}
+
+function formatCompensation(employee) {
+  if (employee.payType === "SALARY") {
+    return `$${Number(employee.salaryRate || 0).toLocaleString()}/yr (Salary)`;
+  }
+
+  if (employee.payType === "CONTRACT_1099") {
+    return `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr (1099)`;
+  }
+
+  return `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr (Hourly)`;
+}
+
 function addDays(date, days) {
   const copy = new Date(date);
   copy.setDate(copy.getDate() + days);
@@ -81,6 +113,80 @@ function getNextWeekday(targetDayName) {
   return addDays(today, diff);
 }
 
+function getDaysInMonth(year, monthIndex) {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+function getSemiMonthlyDay(payday, index, year, monthIndex) {
+  const days = payday === "FIFTEENTH_THIRTIETH" ? [15, 30] : [1, 15];
+  return Math.min(days[index], getDaysInMonth(year, monthIndex));
+}
+
+function getSemiMonthlyPayDate(payday, year, monthIndex, index) {
+  return new Date(year, monthIndex, getSemiMonthlyDay(payday, index, year, monthIndex));
+}
+
+function getSemiMonthlyInfo(payday) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let periodEnd = null;
+  let previousPayday = null;
+  let nextPayday = null;
+
+  for (let offset = -1; offset <= 1; offset += 1) {
+    const monthCursor = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+
+    for (let index = 0; index < 2; index += 1) {
+      const candidate = getSemiMonthlyPayDate(
+        payday,
+        monthCursor.getFullYear(),
+        monthCursor.getMonth(),
+        index
+      );
+
+      if (candidate <= today) {
+        previousPayday = periodEnd;
+        periodEnd = candidate;
+      } else if (!nextPayday) {
+        nextPayday = candidate;
+      }
+    }
+  }
+
+  if (!periodEnd) {
+    const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    previousPayday = getSemiMonthlyPayDate(
+      payday,
+      previousMonth.getFullYear(),
+      previousMonth.getMonth(),
+      0
+    );
+    periodEnd = getSemiMonthlyPayDate(
+      payday,
+      previousMonth.getFullYear(),
+      previousMonth.getMonth(),
+      1
+    );
+  }
+
+  if (!previousPayday) {
+    const previousMonth = new Date(periodEnd.getFullYear(), periodEnd.getMonth() - 1, 1);
+    previousPayday = getSemiMonthlyPayDate(
+      payday,
+      previousMonth.getFullYear(),
+      previousMonth.getMonth(),
+      1
+    );
+  }
+
+  return {
+    periodStart: addDays(previousPayday, 1),
+    periodEnd,
+    nextPayday: nextPayday || addDays(periodEnd, 15),
+  };
+}
+
 function getPayrollInfo(company) {
   if (!company) return null;
 
@@ -98,6 +204,12 @@ function getPayrollInfo(company) {
     periodStart = start;
     periodEnd = end;
     nextPayday = getNextWeekday(payday);
+  } else if (payrollType === "SEMI_MONTHLY") {
+    const semiMonthlyInfo = getSemiMonthlyInfo(payday || "FIRST_FIFTEENTH");
+
+    periodStart = semiMonthlyInfo.periodStart;
+    periodEnd = semiMonthlyInfo.periodEnd;
+    nextPayday = semiMonthlyInfo.nextPayday;
   } else {
     const paydayDate = getMostRecentWeekday(payday);
 
@@ -107,6 +219,136 @@ function getPayrollInfo(company) {
   }
 
   return { periodStart, periodEnd, nextPayday, payrollType, payday };
+}
+
+function getCurrentPayrollPeriod(company) {
+  const payrollInfo = getPayrollInfo(company);
+  if (!payrollInfo) return null;
+
+  return {
+    periodStart: payrollInfo.periodStart,
+    periodEnd: payrollInfo.periodEnd,
+    payrollType: payrollInfo.payrollType,
+    payday: payrollInfo.payday,
+  };
+}
+
+function getPreviousSemiMonthlyPeriod(period, payday) {
+  const payDates = [];
+
+  for (let offset = -2; offset <= 0; offset += 1) {
+    const monthCursor = new Date(period.periodEnd.getFullYear(), period.periodEnd.getMonth() + offset, 1);
+
+    for (let index = 0; index < 2; index += 1) {
+      payDates.push(
+        getSemiMonthlyPayDate(
+          payday,
+          monthCursor.getFullYear(),
+          monthCursor.getMonth(),
+          index
+        )
+      );
+    }
+  }
+
+  const sortedPayDates = payDates.sort((a, b) => a - b);
+  const currentIndex = sortedPayDates.findIndex((date) => date.getTime() === period.periodEnd.getTime());
+  const previousEnd = sortedPayDates[currentIndex - 1];
+  const previousPreviousEnd = sortedPayDates[currentIndex - 2];
+
+  if (!previousEnd || !previousPreviousEnd) {
+    const previousMonth = new Date(period.periodEnd.getFullYear(), period.periodEnd.getMonth() - 1, 1);
+    const fallbackEnd = getSemiMonthlyPayDate(
+      payday,
+      previousMonth.getFullYear(),
+      previousMonth.getMonth(),
+      1
+    );
+
+    return {
+      periodStart: addDays(fallbackEnd, -14),
+      periodEnd: fallbackEnd,
+      payrollType: period.payrollType,
+      payday,
+    };
+  }
+
+  return {
+    periodStart: addDays(previousPreviousEnd, 1),
+    periodEnd: previousEnd,
+    payrollType: period.payrollType,
+    payday,
+  };
+}
+
+function getPreviousPayrollPeriod(period, company) {
+  if (!period) return null;
+
+  if (period.payrollType === "BIWEEKLY") {
+    const previousEnd = addDays(period.periodStart, -1);
+    return {
+      periodStart: addDays(previousEnd, -13),
+      periodEnd: previousEnd,
+      payrollType: period.payrollType,
+      payday: period.payday,
+    };
+  }
+
+  if (period.payrollType === "SEMI_MONTHLY") {
+    return getPreviousSemiMonthlyPeriod(period, company?.payday || "FIRST_FIFTEENTH");
+  }
+
+  const previousEnd = addDays(period.periodStart, -1);
+  return {
+    periodStart: addDays(previousEnd, -6),
+    periodEnd: previousEnd,
+    payrollType: period.payrollType,
+    payday: period.payday,
+  };
+}
+
+function buildPayStubPeriods(company, count = 120, earliestDate = null) {
+  const periods = [];
+  let currentPeriod = getCurrentPayrollPeriod(company);
+  const earliest = earliestDate ? new Date(earliestDate) : null;
+  if (earliest) earliest.setHours(0, 0, 0, 0);
+
+  while (currentPeriod && periods.length < count) {
+    periods.push({
+      ...currentPeriod,
+      id: `${currentPeriod.periodStart.toISOString()}-${currentPeriod.periodEnd.toISOString()}`,
+    });
+
+    if (earliest && currentPeriod.periodStart <= earliest) {
+      break;
+    }
+
+    currentPeriod = getPreviousPayrollPeriod(currentPeriod, company);
+  }
+
+  return periods;
+}
+
+function getEarliestPayStubDate(employee, timeEntries, ptoRequests) {
+  const dates = [];
+
+  if (employee?.hireDate) {
+    dates.push(new Date(`${employee.hireDate}T00:00:00`));
+  }
+
+  timeEntries.forEach((entry) => {
+    if (entry.clockInTime) {
+      dates.push(new Date(entry.clockInTime));
+    }
+  });
+
+  ptoRequests.forEach((request) => {
+    if (request.startDate) {
+      dates.push(new Date(`${request.startDate}T00:00:00`));
+    }
+  });
+
+  return dates.length ? new Date(Math.min(...dates)) : null;
 }
 
 function calcHoursInPeriod(timeEntries, periodStart, periodEnd) {
@@ -132,6 +374,105 @@ function calcHoursInPeriod(timeEntries, periodStart, periodEnd) {
     }, 0);
 }
 
+function isDateInPeriod(date, periodStart, periodEnd) {
+  const start = new Date(periodStart);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(periodEnd);
+  end.setHours(23, 59, 59, 999);
+
+  return date >= start && date <= end;
+}
+
+function calcApprovedPtoHoursInPeriod(ptoRequests, periodStart, periodEnd) {
+  if (!periodStart || !periodEnd) return 0;
+
+  return ptoRequests
+    .filter((request) => request.status === "APPROVED")
+    .reduce((sum, request) => {
+      if (!request.startDate || !request.endDate) return sum;
+
+      const requestStart = new Date(`${request.startDate}T00:00:00`);
+      const requestEnd = new Date(`${request.endDate}T00:00:00`);
+      const totalDays = Math.max(1, Math.round((requestEnd - requestStart) / 86400000) + 1);
+      const hoursPerDay = Number(request.hoursRequested || 0) / totalDays;
+      let periodHours = 0;
+      const current = new Date(requestStart);
+
+      while (current <= requestEnd) {
+        if (isDateInPeriod(current, periodStart, periodEnd)) {
+          periodHours += hoursPerDay;
+        }
+
+        current.setDate(current.getDate() + 1);
+      }
+
+      return sum + periodHours;
+    }, 0);
+}
+
+function formatCurrency(amount) {
+  return `$${Number(amount || 0).toFixed(2)}`;
+}
+
+function getPayRate(employee) {
+  if (employee.payType === "SALARY") return Number(employee.salaryRate || 0);
+  return Number(employee.hourlyRate || 0);
+}
+
+function getPayTypeLabel(payType) {
+  if (payType === "SALARY") return "Salary";
+  if (payType === "CONTRACT_1099") return "1099";
+  return "Hourly";
+}
+
+function getPayRateText(employee) {
+  if (employee.payType === "SALARY") {
+    return `${formatCurrency(employee.salaryRate)}/yr`;
+  }
+
+  return `${formatCurrency(employee.hourlyRate)}/hr`;
+}
+
+function buildPayStub(employee, timeEntries, ptoRequests, payrollInfo) {
+  if (!employee || !payrollInfo) return null;
+
+  const workedHours = calcHoursInPeriod(timeEntries, payrollInfo.periodStart, payrollInfo.periodEnd);
+  const ptoHours = employee.payType === "CONTRACT_1099"
+    ? 0
+    : calcApprovedPtoHoursInPeriod(ptoRequests, payrollInfo.periodStart, payrollInfo.periodEnd);
+  const hourlyRate = Number(employee.hourlyRate || 0);
+  const ptoRate = employee.payType === "SALARY"
+    ? Number(employee.salaryRate || 0) / 2080
+    : hourlyRate;
+  const regularWorkedHours = Math.min(workedHours, 40);
+  const overtimeHours = employee.payType === "HOURLY" ? Math.max(workedHours - 40, 0) : 0;
+  const ptoValue = ptoHours * ptoRate;
+  let grossPay = 0;
+
+  if (employee.payType === "SALARY") {
+    const days =
+      (new Date(payrollInfo.periodEnd) - new Date(payrollInfo.periodStart)) / 86400000 + 1;
+    grossPay = (Number(employee.salaryRate || 0) / 365) * days;
+  } else if (employee.payType === "CONTRACT_1099") {
+    grossPay = workedHours * hourlyRate;
+  } else {
+    grossPay = regularWorkedHours * hourlyRate + overtimeHours * hourlyRate * 1.5 + ptoValue;
+  }
+
+  return {
+    workedHours,
+    ptoHours,
+    ptoValue,
+    overtimeHours,
+    grossPay,
+    payTypeLabel: getPayTypeLabel(employee.payType),
+    payRateText: getPayRateText(employee),
+    rate: getPayRate(employee),
+    ptoRate,
+  };
+}
+
 function OverviewCard({ label, value, sub, accent }) {
   return (
     <div className="employee-overview-card">
@@ -154,6 +495,7 @@ function EmployeesPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showPay, setShowPay] = useState(false);
+  const [selectedPayStubPeriodId, setSelectedPayStubPeriodId] = useState(null);
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -353,6 +695,9 @@ function EmployeesPage() {
     setActiveTab(tab);
     setError("");
     setMessage("");
+    if (tab !== "paystub") {
+      setSelectedPayStubPeriodId(null);
+    }
   }
 
   function getStatusClass(status) {
@@ -400,6 +745,15 @@ function EmployeesPage() {
   const hoursThisPeriod = payrollInfo
     ? calcHoursInPeriod(timeEntries, payrollInfo.periodStart, payrollInfo.periodEnd)
     : 0;
+  const earliestPayStubDate = getEarliestPayStubDate(employee, timeEntries, ptoRequests);
+  const payStubPeriods = buildPayStubPeriods(company, 120, earliestPayStubDate).filter((period) => {
+    const periodStub = buildPayStub(employee, timeEntries, ptoRequests, period);
+    return periodStub.workedHours > 0 || periodStub.ptoHours > 0;
+  });
+  const selectedPayStubPeriod = payStubPeriods.find((period) => period.id === selectedPayStubPeriodId);
+  const selectedPayStub = selectedPayStubPeriod
+    ? buildPayStub(employee, timeEntries, ptoRequests, selectedPayStubPeriod)
+    : null;
   const pendingPto = ptoRequests.filter((request) => request.status === "PENDING");
 
   return (
@@ -421,9 +775,7 @@ function EmployeesPage() {
         {showPay && (
           <p>
             <strong>Compensation:</strong>{" "}
-            {employee.payType === "SALARY"
-              ? `$${Number(employee.salaryRate || 0).toLocaleString()}/yr (Salary)`
-              : `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr (Hourly)`}
+            {formatCompensation(employee)}
           </p>
         )}
 
@@ -434,6 +786,14 @@ function EmployeesPage() {
             onClick={() => handleTabChange("overview")}
           >
             Overview
+          </button>
+
+          <button
+            type="button"
+            className={`employee-tab${activeTab === "paystub" ? " employee-tab--active" : ""}`}
+            onClick={() => handleTabChange("paystub")}
+          >
+            Pay Stub
           </button>
 
           <button
@@ -550,7 +910,7 @@ function EmployeesPage() {
                 <OverviewCard
                   label="Next Payday"
                   value={toDateStr(payrollInfo.nextPayday)}
-                  sub={`${payrollInfo.payrollType === "BIWEEKLY" ? "Bi-weekly" : "Weekly"} · ${payrollInfo.payday.charAt(0) + payrollInfo.payday.slice(1).toLowerCase()}`}
+                  sub={`${formatPayrollType(payrollInfo.payrollType)} · ${formatPayday(payrollInfo.payrollType, payrollInfo.payday)}`}
                 />
               )}
             </div>
@@ -588,6 +948,198 @@ function EmployeesPage() {
                   ))}
                 </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "paystub" && (
+          <div className="employee-modern-page">
+            <div className="modern-settings-hero">
+              <div>
+                <h1>Pay Stub</h1>
+                <p>Choose a pay period to review hours, PTO, and estimated gross pay.</p>
+              </div>
+              <div className="hero-art">Pay</div>
+            </div>
+
+            {!payrollInfo || payStubPeriods.length === 0 ? (
+              <div className="modern-card">
+                <div className="empty-state-card workspace-empty">
+                  <h3>No pay stubs yet</h3>
+                  <p>Pay stubs will appear after worked time or approved PTO exists for a pay period.</p>
+                </div>
+              </div>
+            ) : !selectedPayStubPeriod || !selectedPayStub ? (
+              <div className="modern-card">
+                <div className="modern-card-header">
+                  <div className="modern-icon blue">Pay</div>
+                  <div>
+                    <h2>Pay Stub History</h2>
+                    <p>Click a pay period to open the pay stub details.</p>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    maxHeight: 520,
+                    overflowY: "auto",
+                    paddingRight: 4,
+                  }}
+                >
+                  {payStubPeriods.map((period) => {
+                    const periodStub = buildPayStub(employee, timeEntries, ptoRequests, period);
+
+                    return (
+                      <button
+                        key={period.id}
+                        type="button"
+                        onClick={() => setSelectedPayStubPeriodId(period.id)}
+                        style={{
+                          width: "100%",
+                          display: "grid",
+                          gridTemplateColumns: "1fr auto",
+                          gap: 12,
+                          alignItems: "center",
+                          padding: "14px 16px",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 8,
+                          background: "#fff",
+                          color: "#111827",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                        }}
+                      >
+                        <span>
+                          <strong style={{ display: "block", marginBottom: 4 }}>
+                            {toDateStr(period.periodStart)} - {toDateStr(period.periodEnd)}
+                          </strong>
+                          <span style={{ color: "#6b7280", fontSize: "0.86rem" }}>
+                            {formatPayrollType(period.payrollType)} period · {periodStub.workedHours.toFixed(2)} hrs worked
+                          </span>
+                        </span>
+
+                        <strong style={{ color: "#3d52c4" }}>
+                          {formatCurrency(periodStub.grossPay)}
+                        </strong>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="modern-card compact-card">
+                  <div className="modern-card-header">
+                    <div className="modern-icon green">Pay</div>
+                    <div>
+                      <h2>Pay Period</h2>
+                      <p>{toDateStr(selectedPayStubPeriod.periodStart)} - {toDateStr(selectedPayStubPeriod.periodEnd)}</p>
+                    </div>
+                  </div>
+
+                  <div className="form-actions" style={{ marginTop: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPayStubPeriodId(null)}
+                      className="modern-save-btn"
+                    >
+                      Close Pay Stub
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overview-card-grid">
+                  <OverviewCard
+                    label="Hours Worked"
+                    value={`${selectedPayStub.workedHours.toFixed(2)} hrs`}
+                    sub="Selected pay period"
+                  />
+
+                  <OverviewCard
+                    label="Pay Type"
+                    value={selectedPayStub.payTypeLabel}
+                    sub={selectedPayStub.payRateText}
+                  />
+
+                  {employee.payType !== "CONTRACT_1099" && (
+                    <OverviewCard
+                      label="PTO Remaining"
+                      value={`${Number(employee.ptoBalanceHours || 0).toFixed(2)} hrs`}
+                      sub="Available balance"
+                    />
+                  )}
+
+                  <OverviewCard
+                    label="Gross Pay"
+                    value={formatCurrency(selectedPayStub.grossPay)}
+                    sub="Estimated before deductions"
+                  />
+                </div>
+
+                {employee.payType === "CONTRACT_1099" ? (
+                  <div className="modern-card">
+                    <div className="modern-card-header">
+                      <div className="modern-icon blue">1099</div>
+                      <div>
+                        <h2>1099 Pay Summary</h2>
+                        <p>Gross pay is calculated from hours worked times your 1099 rate.</p>
+                      </div>
+                    </div>
+
+                    <div className="workspace-payroll-grid">
+                      <p><strong>Hours Worked:</strong> {selectedPayStub.workedHours.toFixed(2)} hrs</p>
+                      <p><strong>1099 Rate:</strong> {selectedPayStub.payRateText}</p>
+                      <p className="gross-pay-highlight">
+                        <strong>Gross Pay:</strong> {formatCurrency(selectedPayStub.grossPay)}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="modern-card">
+                    <div className="modern-card-header">
+                      <div className="modern-icon blue">Pay</div>
+                      <div>
+                        <h2>Pay Details</h2>
+                        <p>Includes worked hours, approved PTO used in this period, and estimated gross pay.</p>
+                      </div>
+                    </div>
+
+                    <div className="workspace-payroll-grid">
+                      <p><strong>Hours Worked:</strong> {selectedPayStub.workedHours.toFixed(2)} hrs</p>
+                      <p><strong>Pay Type:</strong> {selectedPayStub.payTypeLabel}</p>
+                      <p><strong>Rate of Pay:</strong> {selectedPayStub.payRateText}</p>
+
+                      {employee.payType === "HOURLY" && (
+                        <p><strong>Overtime Hours:</strong> {selectedPayStub.overtimeHours.toFixed(2)} hrs</p>
+                      )}
+
+                      <p><strong>PTO Remaining:</strong> {Number(employee.ptoBalanceHours || 0).toFixed(2)} hrs</p>
+
+                      {selectedPayStub.ptoHours > 0 ? (
+                        <>
+                          <p><strong>PTO Used:</strong> {selectedPayStub.ptoHours.toFixed(2)} hrs</p>
+                          <p>
+                            <strong>PTO Pay Value:</strong>{" "}
+                            {formatCurrency(selectedPayStub.ptoValue)}
+                            {" "}
+                            ({selectedPayStub.ptoHours.toFixed(2)} hrs x {formatCurrency(selectedPayStub.ptoRate)}/hr)
+                          </p>
+                        </>
+                      ) : (
+                        <p><strong>PTO Used:</strong> 0.00 hrs</p>
+                      )}
+
+                      <p className="gross-pay-highlight">
+                        <strong>Gross Pay:</strong> {formatCurrency(selectedPayStub.grossPay)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -1033,7 +1585,12 @@ function EmployeesPage() {
         )}
 
         {activeTab === "documents" && (
-          <DocumentsPanel companyId={employee.companyId} canUpload={false} />
+          <DocumentsPanel
+            companyId={employee.companyId}
+            employeeId={id}
+            employeePayType={employee.payType}
+            canUpload={false}
+          />
         )}
       </div>
     </div>
