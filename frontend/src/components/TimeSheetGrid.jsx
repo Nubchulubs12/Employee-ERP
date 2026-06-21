@@ -187,8 +187,8 @@ function getDailyTotal(entries, dateKey) {
 
 function getEntryLabel(entry) {
   if (entry.isPto) return "PTO";
-  if (entry._splitType === "start") return `${formatTime(entry.clockInTime)} --`;
-  if (entry._splitType === "end") return `-- ${formatTime(entry.clockOutTime)}`;
+  if (entry._splitType === "start") return `${formatTime(entry.clockInTime)} ->`;
+  if (entry._splitType === "end") return `Clock Out ${formatTime(entry.clockOutTime)}`;
   if (!entry.clockOutTime) return `${formatTime(entry.clockInTime)} -> Still In`;
   return `${formatTime(entry.clockInTime)} -> ${formatTime(entry.clockOutTime)}`;
 }

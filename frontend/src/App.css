@@ -237,9 +237,31 @@
   font-size: 0.75rem;
 }
 
+.mini-grid-row-slot {
+  min-height: 78px;
+}
+
+.mini-grid-row-slot--empty {
+  margin-bottom: 6px;
+}
+
+.mini-grid-row-slot .mini-grid-entry {
+  min-height: 66px;
+}
+
 .mini-grid-entry-times { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 .mini-grid-sep { opacity: 0.7; }
 .mini-grid-entry-hrs { opacity: 0.85; margin-top: 2px; }
+.mini-grid-entry--split-start {
+  margin-right: -8px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.mini-grid-entry--split-end {
+  margin-left: -8px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
 
 .mini-grid-entry-actions { display: flex; gap: 4px; margin-top: 6px; }
 
@@ -247,7 +269,7 @@
 .mini-btn-edit { background: #fff; color: #3d52c4; }
 .mini-btn-delete { background: #ff4d4d; color: #fff; }
 .mini-btn-add { background: #eef6ff; color: #17427a; border: 1px solid #bfd7ff; }
-.mini-btn-add-inline { width: 100%; margin-top: 6px; padding: 6px 8px; }
+.mini-btn-add-inline { margin-top: 6px; }
 .mini-btn-cancel { background: none; border: 1px solid #ccc; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.85rem; color: #000; }
 
 .mini-grid-empty { text-align: center; color: #aaa; font-size: 0.8rem; padding: 8px 0; }

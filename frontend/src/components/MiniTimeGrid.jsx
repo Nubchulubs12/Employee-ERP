@@ -67,6 +67,127 @@ function calcHours(entry) {
   return diff > 0 ? diff / 3600000 : 0;
 }
 
+function getClockOutDateKey(entry) {
+  if (entry.clockOutTime && entry.clockOutTime.includes("T")) {
+    return formatDateKey(new Date(entry.clockOutTime));
+  }
+  return getEntryDateKey(entry);
+}
+
+function getMidnightDateTime(dateKey, time) {
+  return `${dateKey}T${time}`;
+}
+
+function splitOvernightEntries(entries) {
+  const occupiedRowsByDay = new Map();
+  const segments = [];
+
+  function getNextSharedRow(dateKeys) {
+    let rowIndex = 0;
+
+    while (
+      dateKeys.some((dateKey) => occupiedRowsByDay.get(dateKey)?.has(rowIndex))
+    ) {
+      rowIndex += 1;
+    }
+
+    for (const dateKey of dateKeys) {
+      if (!occupiedRowsByDay.has(dateKey)) {
+        occupiedRowsByDay.set(dateKey, new Set());
+      }
+
+      occupiedRowsByDay.get(dateKey).add(rowIndex);
+    }
+
+    return rowIndex;
+  }
+
+  for (const entry of entries.slice().sort((a, b) => getEntryStartTime(a) - getEntryStartTime(b))) {
+    if (entry.isPto || !entry.clockInTime || !entry.clockOutTime) {
+      const dateKey = getEntryDateKey(entry);
+      const rowIndex = getNextSharedRow([dateKey]);
+      segments.push({ ...entry, _segmentDateKey: dateKey, _rowIndex: rowIndex });
+      continue;
+    }
+
+    const inKey = getEntryDateKey(entry);
+    const outKey = getClockOutDateKey(entry);
+
+    if (inKey === outKey) {
+      const rowIndex = getNextSharedRow([inKey]);
+      segments.push({ ...entry, _segmentDateKey: inKey, _rowIndex: rowIndex });
+      continue;
+    }
+
+    const rowIndex = getNextSharedRow([inKey, outKey]);
+
+    segments.push({
+      ...entry,
+      _displayId: `${entry.id}_start`,
+      _sourceEntry: entry,
+      _sourceId: entry.id,
+      clockOutTime: getMidnightDateTime(inKey, "23:59:59"),
+      _segmentDateKey: inKey,
+      _rowIndex: rowIndex,
+      _isSplit: true,
+      _splitType: "start",
+    });
+    segments.push({
+      ...entry,
+      _displayId: `${entry.id}_end`,
+      _sourceEntry: entry,
+      _sourceId: entry.id,
+      clockInTime: getMidnightDateTime(outKey, "00:00:00"),
+      _segmentDateKey: outKey,
+      _rowIndex: rowIndex,
+      _isSplit: true,
+      _splitType: "end",
+    });
+  }
+
+  return segments;
+}
+
+function getEntryStartTime(entry) {
+  if (!entry.clockInTime) return 0;
+  const date = new Date(entry.clockInTime);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function getEntryLabel(entry) {
+  if (entry._splitType === "start") {
+    return (
+      <>
+        <span>{formatDisplayTime(entry.clockInTime)}</span>
+        <span className="mini-grid-sep">-&gt;</span>
+      </>
+    );
+  }
+
+  if (entry._splitType === "end") {
+    return (
+      <>
+        <span className="mini-grid-sep">Clock Out</span>
+        <span>{formatDisplayTime(entry.clockOutTime)}</span>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <span>{formatDisplayTime(entry.clockInTime)}</span>
+      <span className="mini-grid-sep">-&gt;</span>
+      <span>
+        {entry.clockOutTime ? (
+          formatDisplayTime(entry.clockOutTime)
+        ) : (
+          <em>Still In</em>
+        )}
+      </span>
+    </>
+  );
+}
+
 function buildPtoEntries(ptoRequests = []) {
   return ptoRequests
     .filter((request) => request.status === "APPROVED")
@@ -115,18 +236,15 @@ export default function MiniTimeGrid({
   const weekDays = getWeekDays(weekStart);
   const isCurrentWeek = weekOffset === 0;
   const weekDateKeys = new Set(weekDays.map((d) => d.dateKey));
-  const displayEntries = [...timeEntries, ...buildPtoEntries(ptoRequests)];
+  const allEntries = [...timeEntries, ...buildPtoEntries(ptoRequests)];
 
-  const weekEntries = displayEntries.filter((entry) => {
+  const weekSourceEntries = allEntries.filter((entry) => {
     const inKey = getEntryDateKey(entry);
-    let outKey = inKey;
-
-    if (!entry.isPto && entry.clockOutTime && entry.clockOutTime.includes("T")) {
-      outKey = formatDateKey(new Date(entry.clockOutTime));
-    }
+    const outKey = entry.isPto ? inKey : getClockOutDateKey(entry);
 
     return weekDateKeys.has(inKey) || weekDateKeys.has(outKey);
   });
+  const weekEntries = splitOvernightEntries(weekSourceEntries);
 
   const weeklyTotal = weekEntries
     .reduce((sum, entry) => sum + calcHours(entry), 0)
@@ -188,9 +306,12 @@ export default function MiniTimeGrid({
 
       <div className="mini-grid-days">
         {weekDays.map((day) => {
-          const dayEntries = weekEntries.filter((entry) => getEntryDateKey(entry) === day.dateKey);
-          const hasTimeEntry = timeEntries.some((entry) => getEntryDateKey(entry) === day.dateKey);
-          const showAddButton = Boolean(onAdd) && !hasTimeEntry;
+          const dayEntries = weekEntries.filter((entry) => entry._segmentDateKey === day.dateKey);
+          const entryRows = Array.from(
+            { length: Math.max(0, ...dayEntries.map((entry) => entry._rowIndex)) + 1 },
+            (_, index) => index
+          );
+          const showAddButton = Boolean(onAdd);
 
           return (
             <div key={day.dateKey} className="mini-grid-day">
@@ -215,59 +336,63 @@ export default function MiniTimeGrid({
                   </div>
                 ) : (
                   <>
-                    {dayEntries.map((entry) => {
+                    {entryRows.map((rowIndex) => {
+                      const entry = dayEntries.find((item) => item._rowIndex === rowIndex);
+
+                      if (!entry) {
+                        return (
+                          <div
+                            key={`${day.dateKey}-row-${rowIndex}`}
+                            className="mini-grid-row-slot mini-grid-row-slot--empty"
+                          />
+                        );
+                      }
+
                       const hrs = calcHours(entry).toFixed(2);
 
                       return (
-                        <div
-                          key={entry.id}
-                          className={`mini-grid-entry${entry.isPto ? " mini-grid-entry--pto" : ""}`}
-                        >
-                          {entry.isPto ? (
-                            <>
-                              <div className="mini-grid-entry-times">
-                                <strong>PTO</strong>
-                              </div>
-                              <div className="mini-grid-entry-hrs">{hrs} hrs</div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="mini-grid-entry-times">
-                                <span>{formatDisplayTime(entry.clockInTime)}</span>
-                                <span className="mini-grid-sep">-&gt;</span>
-                                <span>
-                                  {entry.clockOutTime ? (
-                                    formatDisplayTime(entry.clockOutTime)
-                                  ) : (
-                                    <em>Still In</em>
-                                  )}
-                                </span>
-                              </div>
-
-                              {entry.clockOutTime && (
-                                <div className="mini-grid-entry-hrs">{hrs} hrs</div>
-                              )}
-
-                              {entry.clockOutTime && (
-                                <div className="mini-grid-entry-actions">
-                                  <button
-                                    type="button"
-                                    className="mini-btn mini-btn-edit"
-                                    onClick={() => onEdit(entry)}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="mini-btn mini-btn-delete"
-                                    onClick={() => onDelete(entry.id)}
-                                  >
-                                    Delete
-                                  </button>
+                        <div className="mini-grid-row-slot" key={entry._displayId || entry.id}>
+                          <div
+                            className={`mini-grid-entry${entry.isPto ? " mini-grid-entry--pto" : ""}${entry._isSplit ? " mini-grid-entry--split" : ""}${entry._splitType ? ` mini-grid-entry--split-${entry._splitType}` : ""}`}
+                          >
+                            {entry.isPto ? (
+                              <>
+                                <div className="mini-grid-entry-times">
+                                  <strong>PTO</strong>
                                 </div>
-                              )}
-                            </>
-                          )}
+                                <div className="mini-grid-entry-hrs">{hrs} hrs</div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="mini-grid-entry-times">
+                                  {getEntryLabel(entry)}
+                                </div>
+
+                                {entry.clockOutTime && (
+                                  <div className="mini-grid-entry-hrs">{hrs} hrs</div>
+                                )}
+
+                                {entry.clockOutTime && (
+                                  <div className="mini-grid-entry-actions">
+                                    <button
+                                      type="button"
+                                      className="mini-btn mini-btn-edit"
+                                      onClick={() => onEdit(entry._sourceEntry || entry)}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="mini-btn mini-btn-delete"
+                                      onClick={() => onDelete(entry._sourceId || entry.id)}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
