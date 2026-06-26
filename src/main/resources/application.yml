@@ -32,6 +32,7 @@ app:
   mail:
     from: ${MAIL_FROM:${MAIL_USERNAME:ncodedsystems@gmail.com}}
     display-name: ${MAIL_DISPLAY_NAME:Ncoded Systems}
+    resend-api-key: ${RESEND_API_KEY:}
 
 server:
   port: ${PORT:8080}
