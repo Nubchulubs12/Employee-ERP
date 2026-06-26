@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../api/authApi";
 
 function Login({ defaultType = "employee" }) {
@@ -76,6 +76,14 @@ function Login({ defaultType = "employee" }) {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+
+        <Link
+          className="forgot-password-link"
+          to="/forgot-password"
+          state={{ accountType: defaultType === "company" ? "COMPANY" : "EMPLOYEE" }}
+        >
+          Forgot password?
+        </Link>
 
         {error && <p className="error-message">{error}</p>}
       </div>

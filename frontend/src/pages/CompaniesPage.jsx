@@ -16,6 +16,7 @@ import {
 } from '../api/employeeApi';
 import MiniTimeGrid from '../components/MiniTimeGrid';
 import DocumentsPanel from '../components/DocumentsPanel';
+import PayrollPanel from '../components/PayrollPanel';
 
 const MAX_EMPLOYEES_MESSAGE = "you have reached the max number off employees this plan is allowed, upgrade to add more employees.";
 const GROWING_MAX_EMPLOYEES_MESSAGE = "You have reached the maximum limit of this plan";
@@ -1042,6 +1043,14 @@ function CompaniesPage() {
               onClick={() => handleCompanyTabChange("management")}
             >
               Employee Management
+            </button>
+
+            <button
+              type="button"
+              className={`employee-tab${activeCompanyTab === "payroll" ? " employee-tab--active" : ""}`}
+              onClick={() => handleCompanyTabChange("payroll")}
+            >
+              Payroll
             </button>
 
             <button
@@ -2103,6 +2112,13 @@ function CompaniesPage() {
         )}
     {activeCompanyTab === "documents" && (
       <DocumentsPanel companyId={id} canUpload={true} />
+    )}
+    {activeCompanyTab === "payroll" && (
+      <PayrollPanel
+        companyId={id}
+        employees={employees}
+        period={getPayrollPeriod()}
+      />
     )}
 {activeCompanyTab === "password" && (
   <div className="modern-form-page">
