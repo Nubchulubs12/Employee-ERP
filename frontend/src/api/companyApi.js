@@ -81,3 +81,47 @@ export async function changeCompanyPassword(id, passwordData) {
   });
   return readResponse(response, "Failed to change password");
 }
+
+export async function fetchCompanyMonthlyProfits(id, year) {
+  const response = await fetch(`${BASE_URL}/${id}/monthly-profits?year=${year}`);
+  return readResponse(response, "Failed to load company monthly profits");
+}
+
+export async function updateCompanyMonthlyProfit(id, year, month, grossProfit) {
+  const response = await fetch(`${BASE_URL}/${id}/monthly-profits/${year}/${month}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ grossProfit }),
+  });
+  return readResponse(response, "Failed to update company monthly profit");
+}
+
+export async function fetchCompanyMonthlyJobs(id, year) {
+  const response = await fetch(`${BASE_URL}/${id}/monthly-profit-jobs?year=${year}`);
+  return readResponse(response, "Failed to load monthly jobs");
+}
+
+export async function createCompanyMonthlyJob(id, year, month, job) {
+  const response = await fetch(`${BASE_URL}/${id}/monthly-profit-jobs/${year}/${month}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(job),
+  });
+  return readResponse(response, "Failed to add monthly job");
+}
+
+export async function updateCompanyMonthlyJob(id, jobId, job) {
+  const response = await fetch(`${BASE_URL}/${id}/monthly-profit-jobs/${jobId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(job),
+  });
+  return readResponse(response, "Failed to update monthly job");
+}
+
+export async function deleteCompanyMonthlyJob(id, jobId) {
+  const response = await fetch(`${BASE_URL}/${id}/monthly-profit-jobs/${jobId}`, {
+    method: "DELETE",
+  });
+  return readResponse(response, "Failed to delete monthly job");
+}

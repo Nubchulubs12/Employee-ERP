@@ -24,6 +24,7 @@ public class CreateEmployeeRequest {
     private Long companyId;
     private String payType;
     private BigDecimal salaryRate;
+    private BigDecimal commissionPercentage;
 
     private BigDecimal hourlyRate;
     private String jobTitle;
@@ -52,6 +53,14 @@ public class CreateEmployeeRequest {
 
     public void setSalaryRate(BigDecimal salaryRate) {
         this.salaryRate = salaryRate;
+    }
+
+    public BigDecimal getCommissionPercentage() {
+        return commissionPercentage;
+    }
+
+    public void setCommissionPercentage(BigDecimal commissionPercentage) {
+        this.commissionPercentage = commissionPercentage;
     }
 
     public String getFirstName() {

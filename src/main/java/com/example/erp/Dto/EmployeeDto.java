@@ -16,6 +16,7 @@ public class EmployeeDto {
     private BigDecimal ptoBalanceHours;
     private String payType;
     private BigDecimal salaryRate;
+    private BigDecimal commissionPercentage;
     private String phone;
     private String streetAddress;
     private String addressLine2;
@@ -38,6 +39,7 @@ public class EmployeeDto {
             BigDecimal hourlyRate,
             BigDecimal salaryRate,
             String payType,
+            BigDecimal commissionPercentage,
             BigDecimal ptoBalanceHours,
             String phone,
             String streetAddress,
@@ -60,6 +62,7 @@ public class EmployeeDto {
         this.hourlyRate = hourlyRate;
         this.salaryRate = salaryRate;
         this.payType = payType;
+        this.commissionPercentage = commissionPercentage;
         this.ptoBalanceHours = ptoBalanceHours;
         this.phone = phone;
         this.streetAddress = streetAddress;
@@ -125,5 +128,9 @@ public class EmployeeDto {
 
     public BigDecimal getSalaryRate() {
         return salaryRate;
+    }
+
+    public BigDecimal getCommissionPercentage() {
+        return commissionPercentage;
     }
 }

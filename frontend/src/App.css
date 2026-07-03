@@ -1525,6 +1525,27 @@ textarea {
   text-align: center;
 }
 
+.payroll-profit-warning {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border: 1px solid #fbbf24;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #92400e;
+  font-weight: 700;
+}
+
+.payroll-commission-note {
+  margin-top: 4px;
+  color: #667085;
+  font-size: 0.82rem;
+}
+
+.payroll-status-label.payroll-status-label--warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .payroll-table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -1532,7 +1553,7 @@ textarea {
 
 .payroll-table {
   width: 100%;
-  min-width: 1120px;
+  min-width: 1360px;
   border-collapse: collapse;
 }
 
@@ -1542,6 +1563,30 @@ textarea {
   border-bottom: 1px solid #e5e7eb;
   text-align: left;
   white-space: nowrap;
+}
+
+.commission-form textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+}
+
+.commission-actions {
+  display: flex;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.commission-actions button {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+}
+
+.commission-actions button:last-child {
+  color: #b42318;
 }
 
 .payroll-table th {
@@ -2376,6 +2421,319 @@ summary:focus-visible {
 .register-form textarea {
   width: 100%;
   resize: vertical;
+}
+
+.register-form input:disabled,
+.workspace-form input:disabled {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.company-profit-hero {
+  align-items: center;
+}
+
+.company-profit-year-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: var(--ess-shadow-sm);
+}
+
+.company-profit-year-controls strong {
+  min-width: 64px;
+  color: var(--ess-navy);
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.company-profit-year-controls button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: #e8efff;
+  color: var(--ess-blue);
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.company-profit-month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.employee-avatar.company-profit-month {
+  width: 100%;
+  height: 96px;
+  padding: 12px;
+  border: 2px solid transparent;
+  flex-direction: column;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.company-profit-month span {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.company-profit-month small {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.72rem;
+}
+
+.employee-avatar.company-profit-month--active {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px #dbeafe;
+  transform: translateY(-1px);
+}
+
+.company-profit-editor {
+  margin-top: 20px;
+}
+
+.company-profit-form {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+}
+
+.company-profit-form label {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  color: #344054;
+  font-weight: 800;
+}
+
+.company-profit-form input {
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.company-job-section {
+  margin-top: 26px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.company-job-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.company-job-header h2,
+.company-job-header p {
+  margin: 0;
+}
+
+.company-job-header p {
+  margin-top: 5px;
+  color: #667085;
+}
+
+.company-job-add-btn {
+  flex-shrink: 0;
+}
+
+.company-job-form,
+.company-job-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.55fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.company-job-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.company-job-delete-btn {
+  min-height: 46px;
+  padding: 10px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #be123c;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.company-job-delete-btn:hover {
+  background: #ffe4e6;
+}
+
+.company-job-delete-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.company-job-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #344054;
+  font-weight: 800;
+}
+
+.company-job-form input,
+.company-job-row input {
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.company-job-list {
+  margin-top: 18px;
+}
+
+.company-job-row {
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.company-job-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: var(--ess-navy);
+  font-weight: 800;
+}
+
+.company-job-empty {
+  margin: 16px 0 0;
+  padding: 14px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  color: #667085;
+  text-align: center;
+}
+
+.company-profit-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.company-profit-summary > div:not(.company-commission-breakdown) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.company-profit-summary span {
+  color: #667085;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.company-profit-summary strong {
+  color: var(--ess-navy);
+  font-size: 1.2rem;
+}
+
+.company-profit-summary .company-profit-remaining {
+  background: #ecfdf3;
+  border-color: #a7f3d0;
+}
+
+.company-commission-breakdown,
+.company-profit-no-commission {
+  grid-column: 1 / -1;
+}
+
+.company-commission-breakdown {
+  padding-top: 8px;
+}
+
+.company-commission-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.company-profit-no-commission {
+  margin: 0;
+  padding: 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #667085;
+}
+
+@media (max-width: 900px) {
+  .company-profit-month-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .company-profit-month-grid,
+  .company-profit-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .company-profit-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .company-profit-form button {
+    width: 100%;
+  }
+
+  .company-job-header,
+  .company-job-form,
+  .company-job-row {
+    align-items: stretch;
+  }
+
+  .company-job-header {
+    flex-direction: column;
+  }
+
+  .company-job-form,
+  .company-job-row {
+    grid-template-columns: 1fr;
+  }
+
+  .company-job-add-btn,
+  .company-job-form button,
+  .company-job-row button {
+    width: 100%;
+  }
+
+  .company-job-actions {
+    width: 100%;
+  }
 }
 
 .register-form input:focus,

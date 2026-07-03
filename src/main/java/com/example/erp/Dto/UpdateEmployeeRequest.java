@@ -26,6 +26,7 @@ public class UpdateEmployeeRequest {
     private BigDecimal ptoBalanceHours;
     private String payType;
     private BigDecimal salaryRate;
+    private BigDecimal commissionPercentage;
     private String phone;
     private String streetAddress;
     private String addressLine2;
@@ -161,6 +162,14 @@ public class UpdateEmployeeRequest {
 
     public void setSalaryRate(BigDecimal salaryRate) {
         this.salaryRate = salaryRate;
+    }
+
+    public BigDecimal getCommissionPercentage() {
+        return commissionPercentage;
+    }
+
+    public void setCommissionPercentage(BigDecimal commissionPercentage) {
+        this.commissionPercentage = commissionPercentage;
     }
 
     public void setEmail(String email) {

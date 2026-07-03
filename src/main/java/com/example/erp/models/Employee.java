@@ -36,6 +36,8 @@ private String pwHash;
     private String payType;
     @Column(name = "salaryRate")
     private BigDecimal salaryRate;
+    @Column(name = "commissionPercentage")
+    private BigDecimal commissionPercentage;
 
 private String phone;
     @Column(name = "streetAddress")
@@ -141,6 +143,14 @@ private Company company;
 
     public void setSalaryRate(BigDecimal salaryRate) {
         this.salaryRate = salaryRate;
+    }
+
+    public BigDecimal getCommissionPercentage() {
+        return commissionPercentage;
+    }
+
+    public void setCommissionPercentage(BigDecimal commissionPercentage) {
+        this.commissionPercentage = commissionPercentage;
     }
 
     public Employee() {

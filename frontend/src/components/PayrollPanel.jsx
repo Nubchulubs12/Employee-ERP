@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchCompanyPtoRequests, fetchTimeEntries } from "../api/employeeApi";
+import { fetchCompanyCommissions } from "../api/commissionApi";
 
 function formatMoney(value) {
   return `$${Number(value || 0).toFixed(2)}`;
@@ -7,6 +8,44 @@ function formatMoney(value) {
 
 function formatHours(value) {
   return Number(value || 0).toFixed(2);
+}
+
+function pdfText(value) {
+  return String(value ?? "").replace(/[^\x20-\x7E]/g, "?").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
+
+function buildPayrollPdf(rows, summary, period) {
+  const lines = [
+    `BT /F1 18 Tf 40 750 Td (Company Payroll Summary) Tj ET`,
+    `BT /F1 10 Tf 40 730 Td (${pdfText(`${formatDisplayDate(period.start)} to ${formatDisplayDate(period.end)}`)}) Tj ET`,
+    `BT /F1 10 Tf 40 710 Td (${pdfText(`Commission: ${formatMoney(summary.commissionPay)}   Gross Pay: ${formatMoney(summary.grossPay)}`)}) Tj ET`,
+    `BT /F1 9 Tf 40 682 Td (Employee) Tj ET`,
+    `BT /F1 9 Tf 260 682 Td (Base Pay) Tj ET`,
+    `BT /F1 9 Tf 365 682 Td (Commission) Tj ET`,
+    `BT /F1 9 Tf 475 682 Td (Gross Pay) Tj ET`,
+  ];
+  rows.slice(0, 24).forEach((row, index) => {
+    const y = 662 - index * 24;
+    lines.push(`BT /F1 8 Tf 40 ${y} Td (${pdfText(row.employeeName).slice(0, 38)}) Tj ET`);
+    lines.push(`BT /F1 8 Tf 260 ${y} Td (${pdfText(formatMoney(row.basePay))}) Tj ET`);
+    lines.push(`BT /F1 8 Tf 365 ${y} Td (${pdfText(formatMoney(row.commissionPay))}) Tj ET`);
+    lines.push(`BT /F1 8 Tf 475 ${y} Td (${pdfText(formatMoney(row.grossPay))}) Tj ET`);
+  });
+  const stream = lines.join("\n");
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, index) => { offsets.push(pdf.length); pdf += `${index + 1} 0 obj\n${object}\nendobj\n`; });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => { pdf += `${String(offset).padStart(10, "0")} 00000 n \n`; });
+  return `${pdf}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
 }
 
 function formatDisplayDate(value) {
@@ -33,9 +72,42 @@ function addDays(date, days) {
   return copy;
 }
 
-function buildPeriodOptions(currentPeriod, count = 12) {
+function buildPeriodOptions(currentPeriod, count = 12, payrollType = "WEEKLY", payday = "1") {
   const start = new Date(currentPeriod.start);
   const end = new Date(currentPeriod.end);
+
+  if (payrollType === "QUARTERLY") {
+    return Array.from({ length: count }, (_, index) => {
+      const optionEndMonth = end.getMonth() - index * 3;
+      const optionEndYear = end.getFullYear();
+      const optionEndDay = Math.min(
+        Number(payday) || 1,
+        new Date(optionEndYear, optionEndMonth + 1, 0).getDate()
+      );
+      const optionEnd = new Date(optionEndYear, optionEndMonth, optionEndDay);
+      const previousEndMonth = optionEnd.getMonth() - 3;
+      const previousEndDay = Math.min(
+        Number(payday) || 1,
+        new Date(optionEnd.getFullYear(), previousEndMonth + 1, 0).getDate()
+      );
+      const optionStart = addDays(
+        new Date(optionEnd.getFullYear(), previousEndMonth, previousEndDay),
+        1
+      );
+      const startText = formatDateKey(optionStart);
+      const endText = formatDateKey(optionEnd);
+
+      return {
+        value: `${startText}|${endText}`,
+        start: optionStart,
+        end: optionEnd,
+        startText,
+        endText,
+        label: `${formatDisplayDate(optionStart)} to ${formatDisplayDate(optionEnd)}`,
+      };
+    });
+  }
+
   const periodDays = Math.max(
     1,
     Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1
@@ -156,7 +228,7 @@ function buildPtoEntries(requests = []) {
     });
 }
 
-function calculateEmployeePayroll(employee, timeEntries, ptoEntries, period) {
+function calculateEmployeePayroll(employee, timeEntries, ptoEntries, commissions, period) {
   const periodTimeEntries = timeEntries.filter((entry) =>
     isEntryInPeriod(entry, period.start, period.end)
   );
@@ -190,6 +262,16 @@ function calculateEmployeePayroll(employee, timeEntries, ptoEntries, period) {
     }
   }
 
+  const basePay = grossPay;
+  const employeeCommissions = commissions.filter(
+    (entry) => Number(entry.employeeId) === Number(employee.id)
+  );
+  const commissionPay = employeeCommissions.reduce(
+    (sum, entry) => sum + Number(entry.amount || 0),
+    0
+  );
+  grossPay += commissionPay;
+
   return {
     employeeId: employee.id,
     employeeName: getEmployeeName(employee),
@@ -201,13 +283,19 @@ function calculateEmployeePayroll(employee, timeEntries, ptoEntries, period) {
     hourlyRate: getHourlyRate(employee),
     salaryRate: getSalaryRate(employee),
     contractRate: getContractRate(employee),
+    commissionCount: employeeCommissions.length,
+    basePay,
+    commissionPay,
     grossPay,
     status: "Ready",
   };
 }
 
-export default function PayrollPanel({ companyId, employees = [], period }) {
-  const periodOptions = useMemo(() => buildPeriodOptions(period), [period]);
+export default function PayrollPanel({ companyId, employees = [], period, payrollType, payday }) {
+  const periodOptions = useMemo(
+    () => buildPeriodOptions(period, 12, payrollType, payday),
+    [period, payrollType, payday]
+  );
   const [payrollRows, setPayrollRows] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -225,11 +313,15 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
 
   useEffect(() => {
     if (!periodOptions.some((option) => option.value === selectedPeriodValue)) {
-      setSelectedPeriodValue(periodOptions[0].value);
-      setLoaded(false);
-      setPayrollRows([]);
-      setExportMessage("");
+      const timer = window.setTimeout(() => {
+        setSelectedPeriodValue(periodOptions[0].value);
+        setLoaded(false);
+        setPayrollRows([]);
+        setExportMessage("");
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [periodOptions, selectedPeriodValue]);
 
   const summary = useMemo(() => {
@@ -239,6 +331,7 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
         regularHours: totals.regularHours + row.regularHours,
         overtimeHours: totals.overtimeHours + row.overtimeHours,
         ptoHours: totals.ptoHours + row.ptoHours,
+        commissionPay: totals.commissionPay + row.commissionPay,
         grossPay: totals.grossPay + row.grossPay,
       }),
       {
@@ -246,6 +339,7 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
         regularHours: 0,
         overtimeHours: 0,
         ptoHours: 0,
+        commissionPay: 0,
         grossPay: 0,
       }
     );
@@ -257,7 +351,7 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
     setExportMessage("");
 
     try {
-      const [employeeTimeResults, ptoRequests] = await Promise.all([
+      const [employeeTimeResults, ptoRequests, commissions] = await Promise.all([
         Promise.all(
           employees.map(async (employee) => ({
             employee,
@@ -265,6 +359,7 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
           }))
         ),
         fetchCompanyPtoRequests(companyId),
+        fetchCompanyCommissions(companyId, selectedPeriod.startText, selectedPeriod.endText),
       ]);
 
       const ptoEntries = buildPtoEntries(ptoRequests);
@@ -278,7 +373,13 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
           );
         });
 
-        return calculateEmployeePayroll(employee, timeEntries, employeePtoEntries, selectedPeriod);
+        return calculateEmployeePayroll(
+          employee,
+          timeEntries,
+          employeePtoEntries,
+          commissions,
+          selectedPeriod
+        );
       });
 
       setPayrollRows(rows);
@@ -321,6 +422,9 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
       "Hourly Rate",
       "Salary Rate",
       "1099 Rate",
+      "Commission Entries",
+      "Base Pay",
+      "Commission Pay",
       "Gross Pay",
       "Pay Period Start",
       "Pay Period End",
@@ -340,6 +444,9 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
         row.hourlyRate,
         row.salaryRate,
         row.contractRate,
+        row.commissionCount,
+        formatMoney(row.basePay),
+        formatMoney(row.commissionPay),
         formatMoney(row.grossPay),
         formatDisplayDate(selectedPeriod.start),
         formatDisplayDate(selectedPeriod.end),
@@ -356,6 +463,19 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     setExportMessage("Payroll CSV exported successfully.");
+  }
+
+  function handleExportPdf() {
+    const blob = new Blob([buildPayrollPdf(payrollRows, summary, selectedPeriod)], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `payroll-${selectedPeriod.startText}-to-${selectedPeriod.endText}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setExportMessage("Payroll PDF exported successfully.");
   }
 
   return (
@@ -386,15 +506,10 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
             {loading ? "Loading Payroll..." : "Load Payroll"}
           </button>
 
-          {loaded && payrollRows.length > 0 && (
-            <button
-              type="button"
-              className="modern-save-btn payroll-export-btn"
-              onClick={handleExportCsv}
-            >
-              Export CSV
-            </button>
-          )}
+          {loaded && payrollRows.length > 0 && <>
+            <button type="button" className="modern-save-btn payroll-export-btn" onClick={handleExportCsv}>Export CSV</button>
+            <button type="button" className="modern-save-btn payroll-export-btn" onClick={handleExportPdf}>Export PDF</button>
+          </>}
         </div>
       </div>
 
@@ -407,6 +522,7 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
               Pay period: {formatDisplayDate(selectedPeriod.start)} to{" "}
               {formatDisplayDate(selectedPeriod.end)}
             </p>
+            <p className="payroll-commission-note">Commission is filtered by date earned within this pay period.</p>
           </div>
         </div>
 
@@ -429,6 +545,10 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
           <div>
             <span>Total PTO Hours</span>
             <strong>{formatHours(summary.ptoHours)}</strong>
+          </div>
+          <div>
+            <span>Total Commission Pay</span>
+            <strong>{formatMoney(summary.commissionPay)}</strong>
           </div>
           <div className="payroll-summary-total">
             <span>Total Gross Pay</span>
@@ -474,6 +594,9 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
                   <th>Hourly Rate</th>
                   <th>Salary Rate</th>
                   <th>1099 Rate</th>
+                  <th>Commission Entries</th>
+                  <th>Base Pay</th>
+                  <th>Commission Pay</th>
                   <th>Gross Pay</th>
                   <th>Pay Period Start</th>
                   <th>Pay Period End</th>
@@ -487,7 +610,9 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
                     <td>{row.employeeEmail}</td>
                     <td>{row.payType}</td>
                     <td>
-                      <span className="payroll-status-label">{row.status}</span>
+                      <span className={`payroll-status-label${row.status === "Profit Needed" ? " payroll-status-label--warning" : ""}`}>
+                        {row.status}
+                      </span>
                     </td>
                     <td>{formatHours(row.regularHours)}</td>
                     <td>{formatHours(row.overtimeHours)}</td>
@@ -495,6 +620,9 @@ export default function PayrollPanel({ companyId, employees = [], period }) {
                     <td>{row.hourlyRate}</td>
                     <td>{row.salaryRate}</td>
                     <td>{row.contractRate}</td>
+                    <td>{row.commissionCount}</td>
+                    <td>{formatMoney(row.basePay)}</td>
+                    <td>{formatMoney(row.commissionPay)}</td>
                     <td>{formatMoney(row.grossPay)}</td>
                     <td>{formatDisplayDate(selectedPeriod.start)}</td>
                     <td>{formatDisplayDate(selectedPeriod.end)}</td>

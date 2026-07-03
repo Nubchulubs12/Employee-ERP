@@ -96,6 +96,10 @@ public class EmployeeService {
         employee.setPayType(request.getPayType() != null ? request.getPayType() : "HOURLY");
         employee.setHourlyRate(request.getHourlyRate());
         employee.setSalaryRate(request.getSalaryRate());
+        employee.setCommissionPercentage(normalizeCommissionPercentage(
+                employee.getPayType(),
+                request.getCommissionPercentage()
+        ));
         employee.setPtoBalanceHours(request.getPtoBalanceHours() == null ? BigDecimal.ZERO : request.getPtoBalanceHours());
 
         return toDto(employeeRepository.save(employee));
@@ -118,6 +122,10 @@ public class EmployeeService {
         employee.setPayType(request.getPayType() != null ? request.getPayType() : "HOURLY");
         employee.setHourlyRate(request.getHourlyRate());
         employee.setSalaryRate(request.getSalaryRate());
+        employee.setCommissionPercentage(normalizeCommissionPercentage(
+                employee.getPayType(),
+                request.getCommissionPercentage()
+        ));
         employee.setPtoBalanceHours(request.getPtoBalanceHours() == null ? BigDecimal.ZERO : request.getPtoBalanceHours());
 
         if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
@@ -187,6 +195,7 @@ public class EmployeeService {
                 employee.getHourlyRate(),
                 employee.getSalaryRate(),
                 employee.getPayType(),
+                employee.getCommissionPercentage(),
                 employee.getPtoBalanceHours(),
                 employee.getPhone(),
                 employee.getStreetAddress(),
@@ -198,5 +207,19 @@ public class EmployeeService {
                 employee.getEmergencyContact(),
                 employee.getEmergencyPhone()
         );
+    }
+
+    private BigDecimal normalizeCommissionPercentage(String payType, BigDecimal commissionPercentage) {
+        if (!"CONTRACT_1099".equals(payType)) {
+            return null;
+        }
+
+        if (commissionPercentage != null
+                && (commissionPercentage.compareTo(BigDecimal.ZERO) < 0
+                || commissionPercentage.compareTo(BigDecimal.valueOf(100)) > 0)) {
+            throw new IllegalArgumentException("Commission percentage must be between 0 and 100.");
+        }
+
+        return commissionPercentage;
     }
 }

@@ -12,6 +12,7 @@ import {
   updateEmployeeProfile,
 } from "../api/employeeApi";
 import { fetchCompanyById } from "../api/companyApi";
+import { fetchEmployeeCommissions } from "../api/commissionApi";
 import DocumentsPanel from "../components/DocumentsPanel";
 
 const US_STATES = [
@@ -33,12 +34,31 @@ const SEMI_MONTHLY_PAYDAYS = [
 function formatPayrollType(type) {
   if (type === "BIWEEKLY") return "Bi-weekly";
   if (type === "SEMI_MONTHLY") return "Semi-monthly";
+  if (type === "MONTHLY") return "Monthly";
+  if (type === "QUARTERLY") return "Quarterly";
   return "Weekly";
+}
+
+function formatDayOfMonth(day) {
+  const value = Number(day);
+  const suffix = value % 100 >= 11 && value % 100 <= 13
+    ? "th"
+    : { 1: "st", 2: "nd", 3: "rd" }[value % 10] || "th";
+
+  return `${value}${suffix}`;
 }
 
 function formatPayday(payrollType, payday) {
   if (payrollType === "SEMI_MONTHLY") {
     return SEMI_MONTHLY_PAYDAYS.find((option) => option.value === payday)?.label || "1st and 15th";
+  }
+
+  if (payrollType === "MONTHLY") {
+    return `${formatDayOfMonth(payday || "1")} of each month`;
+  }
+
+  if (payrollType === "QUARTERLY") {
+    return `${formatDayOfMonth(payday || "1")} of Mar, Jun, Sep, and Dec`;
   }
 
   const day = payday || "FRIDAY";
@@ -51,7 +71,11 @@ function formatCompensation(employee) {
   }
 
   if (employee.payType === "CONTRACT_1099") {
-    return `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr (1099)`;
+    const rate = `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr`;
+    const percentage = Number(employee.commissionPercentage || 0);
+    return percentage > 0
+      ? `${rate} + ${percentage.toFixed(2)}% commission (1099)`
+      : `${rate} (1099)`;
   }
 
   return `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr (Hourly)`;
@@ -187,6 +211,68 @@ function getSemiMonthlyInfo(payday) {
   };
 }
 
+function getMonthlyPayDate(payday, year, monthIndex) {
+  const day = Math.min(Number(payday) || 1, getDaysInMonth(year, monthIndex));
+  return new Date(year, monthIndex, day);
+}
+
+function getMonthlyInfo(payday) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const thisMonthPayday = getMonthlyPayDate(payday, today.getFullYear(), today.getMonth());
+  const periodEnd = thisMonthPayday <= today
+    ? thisMonthPayday
+    : getMonthlyPayDate(payday, today.getFullYear(), today.getMonth() - 1);
+  const previousPayday = getMonthlyPayDate(
+    payday,
+    periodEnd.getFullYear(),
+    periodEnd.getMonth() - 1
+  );
+  const nextPayday = getMonthlyPayDate(
+    payday,
+    periodEnd.getFullYear(),
+    periodEnd.getMonth() + 1
+  );
+
+  return {
+    periodStart: addDays(previousPayday, 1),
+    periodEnd,
+    nextPayday,
+  };
+}
+
+function getQuarterlyPayDate(payday, year, quarterEndMonthIndex) {
+  return getMonthlyPayDate(payday, year, quarterEndMonthIndex);
+}
+
+function getQuarterlyInfo(payday) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const quarterEndMonth = Math.floor(today.getMonth() / 3) * 3 + 2;
+  const thisQuarterPayday = getQuarterlyPayDate(payday, today.getFullYear(), quarterEndMonth);
+  const periodEnd = thisQuarterPayday <= today
+    ? thisQuarterPayday
+    : getQuarterlyPayDate(payday, today.getFullYear(), quarterEndMonth - 3);
+  const previousPayday = getQuarterlyPayDate(
+    payday,
+    periodEnd.getFullYear(),
+    periodEnd.getMonth() - 3
+  );
+  const nextPayday = getQuarterlyPayDate(
+    payday,
+    periodEnd.getFullYear(),
+    periodEnd.getMonth() + 3
+  );
+
+  return {
+    periodStart: addDays(previousPayday, 1),
+    periodEnd,
+    nextPayday,
+  };
+}
+
 function getPayrollInfo(company) {
   if (!company) return null;
 
@@ -210,6 +296,18 @@ function getPayrollInfo(company) {
     periodStart = semiMonthlyInfo.periodStart;
     periodEnd = semiMonthlyInfo.periodEnd;
     nextPayday = semiMonthlyInfo.nextPayday;
+  } else if (payrollType === "MONTHLY") {
+    const monthlyInfo = getMonthlyInfo(payday || "1");
+
+    periodStart = monthlyInfo.periodStart;
+    periodEnd = monthlyInfo.periodEnd;
+    nextPayday = monthlyInfo.nextPayday;
+  } else if (payrollType === "QUARTERLY") {
+    const quarterlyInfo = getQuarterlyInfo(payday || "1");
+
+    periodStart = quarterlyInfo.periodStart;
+    periodEnd = quarterlyInfo.periodEnd;
+    nextPayday = quarterlyInfo.nextPayday;
   } else {
     const paydayDate = getMostRecentWeekday(payday);
 
@@ -298,6 +396,48 @@ function getPreviousPayrollPeriod(period, company) {
     return getPreviousSemiMonthlyPeriod(period, company?.payday || "FIRST_FIFTEENTH");
   }
 
+  if (period.payrollType === "MONTHLY") {
+    const payday = company?.payday || "1";
+    const previousEnd = getMonthlyPayDate(
+      payday,
+      period.periodEnd.getFullYear(),
+      period.periodEnd.getMonth() - 1
+    );
+    const previousPreviousEnd = getMonthlyPayDate(
+      payday,
+      previousEnd.getFullYear(),
+      previousEnd.getMonth() - 1
+    );
+
+    return {
+      periodStart: addDays(previousPreviousEnd, 1),
+      periodEnd: previousEnd,
+      payrollType: period.payrollType,
+      payday,
+    };
+  }
+
+  if (period.payrollType === "QUARTERLY") {
+    const payday = company?.payday || "1";
+    const previousEnd = getQuarterlyPayDate(
+      payday,
+      period.periodEnd.getFullYear(),
+      period.periodEnd.getMonth() - 3
+    );
+    const previousPreviousEnd = getQuarterlyPayDate(
+      payday,
+      previousEnd.getFullYear(),
+      previousEnd.getMonth() - 3
+    );
+
+    return {
+      periodStart: addDays(previousPreviousEnd, 1),
+      periodEnd: previousEnd,
+      payrollType: period.payrollType,
+      payday,
+    };
+  }
+
   const previousEnd = addDays(period.periodStart, -1);
   return {
     periodStart: addDays(previousEnd, -6),
@@ -329,7 +469,7 @@ function buildPayStubPeriods(company, count = 120, earliestDate = null) {
   return periods;
 }
 
-function getEarliestPayStubDate(employee, timeEntries, ptoRequests) {
+function getEarliestPayStubDate(employee, timeEntries, ptoRequests, commissions) {
   const dates = [];
 
   if (employee?.hireDate) {
@@ -346,6 +486,10 @@ function getEarliestPayStubDate(employee, timeEntries, ptoRequests) {
     if (request.startDate) {
       dates.push(new Date(`${request.startDate}T00:00:00`));
     }
+  });
+
+  commissions.forEach((entry) => {
+    if (entry.dateEarned) dates.push(new Date(`${entry.dateEarned}T00:00:00`));
   });
 
   return dates.length ? new Date(Math.min(...dates)) : null;
@@ -481,6 +625,9 @@ function buildPayStubPdf({ company, employee, payStub, period }) {
     buildPdfTextLine(58, 524, `Regular Hours: ${regularHours.toFixed(2)} hrs`),
     buildPdfTextLine(58, 504, `Overtime Hours: ${payStub.overtimeHours.toFixed(2)} hrs`),
     buildPdfTextLine(58, 484, `PTO Hours: ${payStub.ptoHours.toFixed(2)} hrs`),
+    buildPdfTextLine(330, 524, `Base Pay: ${formatCurrency(payStub.basePay)}`),
+    buildPdfTextLine(330, 504, `Commission: ${formatCurrency(payStub.commissionPay)}`),
+    buildPdfTextLine(330, 484, `Commission Entries: ${payStub.commissionCount}`),
 
     buildPdfTextLine(40, 440, "PTO", 13, "0.02 0.18 0.46"),
     "0.92 0.92 0.92 rg 40 428 532 1 re f",
@@ -557,7 +704,7 @@ function getPayRateText(employee) {
   return `${formatCurrency(employee.hourlyRate)}/hr`;
 }
 
-function buildPayStub(employee, timeEntries, ptoRequests, payrollInfo) {
+function buildPayStub(employee, timeEntries, ptoRequests, commissions, payrollInfo) {
   if (!employee || !payrollInfo) return null;
 
   const workedHours = calcHoursInPeriod(timeEntries, payrollInfo.periodStart, payrollInfo.periodEnd);
@@ -583,11 +730,21 @@ function buildPayStub(employee, timeEntries, ptoRequests, payrollInfo) {
     grossPay = regularWorkedHours * hourlyRate + overtimeHours * hourlyRate * 1.5 + ptoValue;
   }
 
+  const periodCommissions = commissions.filter((entry) =>
+    isDateInPeriod(new Date(`${entry.dateEarned}T00:00:00`), payrollInfo.periodStart, payrollInfo.periodEnd)
+  );
+  const commissionPay = periodCommissions.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  const basePay = grossPay;
+  grossPay += commissionPay;
+
   return {
     workedHours,
     ptoHours,
     ptoValue,
     overtimeHours,
+    basePay,
+    commissionPay,
+    commissionCount: periodCommissions.length,
     grossPay,
     payTypeLabel: getPayTypeLabel(employee.payType),
     payRateText: getPayRateText(employee),
@@ -612,6 +769,7 @@ function EmployeesPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [timeEntries, setTimeEntries] = useState([]);
   const [ptoRequests, setPtoRequests] = useState([]);
+  const [commissions, setCommissions] = useState([]);
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [employee, setEmployee] = useState(null);
   const [company, setCompany] = useState(null);
@@ -659,6 +817,17 @@ function EmployeesPage() {
     }
 
     if (id) loadTimeEntries();
+  }, [id]);
+
+  useEffect(() => {
+    async function loadCommissions() {
+      try {
+        setCommissions(await fetchEmployeeCommissions(id));
+      } catch (err) {
+        setError(err.message || "Failed to load commission entries");
+      }
+    }
+    if (id) loadCommissions();
   }, [id]);
 
   useEffect(() => {
@@ -868,14 +1037,14 @@ function EmployeesPage() {
   const hoursThisPeriod = payrollInfo
     ? calcHoursInPeriod(timeEntries, payrollInfo.periodStart, payrollInfo.periodEnd)
     : 0;
-  const earliestPayStubDate = getEarliestPayStubDate(employee, timeEntries, ptoRequests);
+  const earliestPayStubDate = getEarliestPayStubDate(employee, timeEntries, ptoRequests, commissions);
   const payStubPeriods = buildPayStubPeriods(company, 120, earliestPayStubDate).filter((period) => {
-    const periodStub = buildPayStub(employee, timeEntries, ptoRequests, period);
-    return periodStub.workedHours > 0 || periodStub.ptoHours > 0;
+    const periodStub = buildPayStub(employee, timeEntries, ptoRequests, commissions, period);
+    return periodStub.workedHours > 0 || periodStub.ptoHours > 0 || periodStub.commissionPay > 0;
   });
   const selectedPayStubPeriod = payStubPeriods.find((period) => period.id === selectedPayStubPeriodId);
   const selectedPayStub = selectedPayStubPeriod
-    ? buildPayStub(employee, timeEntries, ptoRequests, selectedPayStubPeriod)
+    ? buildPayStub(employee, timeEntries, ptoRequests, commissions, selectedPayStubPeriod)
     : null;
   const pendingPto = ptoRequests.filter((request) => request.status === "PENDING");
 
@@ -1113,7 +1282,7 @@ function EmployeesPage() {
                   }}
                 >
                   {payStubPeriods.map((period) => {
-                    const periodStub = buildPayStub(employee, timeEntries, ptoRequests, period);
+                    const periodStub = buildPayStub(employee, timeEntries, ptoRequests, commissions, period);
 
                     return (
                       <button
@@ -1210,6 +1379,12 @@ function EmployeesPage() {
                       sub="Available balance"
                     />
                   )}
+
+                  <OverviewCard
+                    label="Commission"
+                    value={formatCurrency(selectedPayStub.commissionPay)}
+                    sub={`${selectedPayStub.commissionCount} entr${selectedPayStub.commissionCount === 1 ? "y" : "ies"} this pay period`}
+                  />
 
                   <OverviewCard
                     label="Gross Pay"

@@ -17,6 +17,8 @@ import {
 import MiniTimeGrid from '../components/MiniTimeGrid';
 import DocumentsPanel from '../components/DocumentsPanel';
 import PayrollPanel from '../components/PayrollPanel';
+import CommissionPanel from '../components/CommissionPanel';
+import { fetchEmployeeCommissions } from '../api/commissionApi';
 
 const MAX_EMPLOYEES_MESSAGE = "you have reached the max number off employees this plan is allowed, upgrade to add more employees.";
 const GROWING_MAX_EMPLOYEES_MESSAGE = "You have reached the maximum limit of this plan";
@@ -47,15 +49,36 @@ const SEMI_MONTHLY_PAYDAYS = [
   { value: "FIFTEENTH_THIRTIETH", label: "15th and 30th" },
 ];
 
+const MONTHLY_PAYDAYS = Array.from({ length: 31 }, (_, index) => String(index + 1));
+
+function formatDayOfMonth(day) {
+  const value = Number(day);
+  const suffix = value % 100 >= 11 && value % 100 <= 13
+    ? "th"
+    : { 1: "st", 2: "nd", 3: "rd" }[value % 10] || "th";
+
+  return `${value}${suffix}`;
+}
+
 function formatPayrollType(type) {
   if (type === "BIWEEKLY") return "Bi-Weekly";
   if (type === "SEMI_MONTHLY") return "Semi-Monthly";
+  if (type === "MONTHLY") return "Monthly";
+  if (type === "QUARTERLY") return "Quarterly";
   return "Weekly";
 }
 
 function formatPayday(payrollType, payday) {
   if (payrollType === "SEMI_MONTHLY") {
     return SEMI_MONTHLY_PAYDAYS.find((option) => option.value === payday)?.label || "1st and 15th";
+  }
+
+  if (payrollType === "MONTHLY") {
+    return `${formatDayOfMonth(payday || "1")} of each month`;
+  }
+
+  if (payrollType === "QUARTERLY") {
+    return `${formatDayOfMonth(payday || "1")} of Mar, Jun, Sep, and Dec`;
   }
 
   const day = payday || "FRIDAY";
@@ -79,7 +102,11 @@ function formatEmployeePayRate(employee) {
     return `$${Number(employee.salaryRate || 0).toLocaleString()}/yr`;
   }
 
-  return `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr`;
+  const rate = `$${Number(employee.hourlyRate || 0).toFixed(2)}/hr`;
+  if (employee.payType === "CONTRACT_1099" && employee.commissionPercentage != null) {
+    return `${rate} · ${Number(employee.commissionPercentage).toFixed(2)}% commission`;
+  }
+  return rate;
 }
 
 function normalizeCompanySettings(settings = {}) {
@@ -89,6 +116,10 @@ function normalizeCompanySettings(settings = {}) {
     ? semiMonthlyValues.includes(settings.payday)
       ? settings.payday
       : "FIRST_FIFTEENTH"
+    : payrollType === "MONTHLY" || payrollType === "QUARTERLY"
+      ? MONTHLY_PAYDAYS.includes(settings.payday)
+        ? settings.payday
+        : "1"
     : WEEKDAY_PAYDAYS.includes(settings.payday)
       ? settings.payday
       : "FRIDAY";
@@ -176,6 +207,72 @@ function getSemiMonthlyPeriod(payday) {
   };
 }
 
+function getMonthlyPayDate(payday, year, monthIndex) {
+  const day = Math.min(Number(payday) || 1, getDaysInMonth(year, monthIndex));
+  return new Date(year, monthIndex, day);
+}
+
+function getMonthlyPeriod(payday) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const thisMonthPayday = getMonthlyPayDate(payday, today.getFullYear(), today.getMonth());
+  const periodEnd = thisMonthPayday <= today
+    ? thisMonthPayday
+    : getMonthlyPayDate(payday, today.getFullYear(), today.getMonth() - 1);
+  const previousPayday = getMonthlyPayDate(
+    payday,
+    periodEnd.getFullYear(),
+    periodEnd.getMonth() - 1
+  );
+
+  return { start: addDays(previousPayday, 1), end: periodEnd };
+}
+
+function getQuarterlyPayDate(payday, year, quarterEndMonthIndex) {
+  return getMonthlyPayDate(payday, year, quarterEndMonthIndex);
+}
+
+function getQuarterlyPeriod(payday) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const quarterEndMonth = Math.floor(today.getMonth() / 3) * 3 + 2;
+  const thisQuarterPayday = getQuarterlyPayDate(payday, today.getFullYear(), quarterEndMonth);
+  const periodEnd = thisQuarterPayday <= today
+    ? thisQuarterPayday
+    : getQuarterlyPayDate(payday, today.getFullYear(), quarterEndMonth - 3);
+  const previousPayday = getQuarterlyPayDate(
+    payday,
+    periodEnd.getFullYear(),
+    periodEnd.getMonth() - 3
+  );
+
+  return { start: addDays(previousPayday, 1), end: periodEnd };
+}
+
+function PayTypeCheckboxes({ payType, onChange }) {
+  return (
+    <div>
+      <label style={{ marginBottom: 4, display: "block" }}>Pay Type</label>
+      <div style={{ display: "flex", gap: 24, marginBottom: 12 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <input type="checkbox" checked={payType === "HOURLY"} onChange={() => onChange("HOURLY")} />
+          Hourly
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <input type="checkbox" checked={payType === "SALARY"} onChange={() => onChange("SALARY")} />
+          Salary
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <input type="checkbox" checked={payType === "CONTRACT_1099"} onChange={() => onChange("CONTRACT_1099")} />
+          1099
+        </label>
+      </div>
+    </div>
+  );
+}
+
 
 function CompaniesPage() {
   const { id } = useParams();
@@ -216,12 +313,14 @@ function CompaniesPage() {
     payType: "HOURLY",
     hourlyRate: "",
     salaryRate: "",
+    commissionPercentage: "",
     ptoBalanceHours: "",
   });
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [timeEntries, setTimeEntries] = useState([]);
   const [selectedEmployeePtoRequests, setSelectedEmployeePtoRequests] = useState([]);
+  const [selectedEmployeeCommissions, setSelectedEmployeeCommissions] = useState([]);
   const [editingTimeEntryId, setEditingTimeEntryId] = useState(null);
   const [addingTimeEntryDate, setAddingTimeEntryDate] = useState(null);
   const [timeForm, setTimeForm] = useState({ clockInTime: "", clockOutTime: "" });
@@ -237,6 +336,7 @@ function CompaniesPage() {
     payType: "HOURLY",
     hourlyRate: "",
     salaryRate: "",
+    commissionPercentage: "",
     ptoBalanceHours: "",
   });
 
@@ -302,6 +402,7 @@ function CompaniesPage() {
     setPtoManagerEmployeeId(null);
     setSelectedEmployeeId(null);
     setSelectedEmployeePtoRequests([]);
+    setSelectedEmployeeCommissions([]);
     setEditingEmployeeId(null);
     setEditingTimeEntryId(null);
     setAddingTimeEntryDate(null);
@@ -336,7 +437,11 @@ function CompaniesPage() {
       return {
         ...prev,
         payrollType: value,
-        payday: value === "SEMI_MONTHLY" ? "FIRST_FIFTEENTH" : "FRIDAY",
+        payday: value === "SEMI_MONTHLY"
+          ? "FIRST_FIFTEENTH"
+          : value === "MONTHLY" || value === "QUARTERLY"
+            ? "1"
+            : "FRIDAY",
       };
     });
   }
@@ -385,6 +490,7 @@ function CompaniesPage() {
       setPtoManagerEmployeeId(employee.id);
       setSelectedEmployeeId(null);
       setSelectedEmployeePtoRequests([]);
+      setSelectedEmployeeCommissions([]);
       setEditingEmployeeId(null);
       setEditingTimeEntryId(null);
       setAddingTimeEntryDate(null);
@@ -467,6 +573,7 @@ function CompaniesPage() {
         payType: "HOURLY",
         hourlyRate: "",
         salaryRate: "",
+        commissionPercentage: "",
         ptoBalanceHours: "",
       });
 
@@ -487,6 +594,7 @@ function CompaniesPage() {
     setPtoManagerEmployeeId(null);
     setSelectedEmployeeId(null);
     setSelectedEmployeePtoRequests([]);
+    setSelectedEmployeeCommissions([]);
     setEditingTimeEntryId(null);
     setAddingTimeEntryDate(null);
     setEditingEmployeeId(employee.id);
@@ -500,6 +608,7 @@ function CompaniesPage() {
       payType: employee.payType || "HOURLY",
       hourlyRate: employee.hourlyRate || "",
       salaryRate: employee.salaryRate || "",
+      commissionPercentage: employee.commissionPercentage ?? "",
       ptoBalanceHours: employee.ptoBalanceHours || "",
     });
   }
@@ -532,6 +641,7 @@ function CompaniesPage() {
         payType: "HOURLY",
         hourlyRate: "",
         salaryRate: "",
+        commissionPercentage: "",
         ptoBalanceHours: "",
       });
 
@@ -550,6 +660,7 @@ function CompaniesPage() {
       if (selectedEmployeeId === employeeId) {
         setSelectedEmployeeId(null);
         setSelectedEmployeePtoRequests([]);
+        setSelectedEmployeeCommissions([]);
         setTimeEntries([]);
       }
 
@@ -573,10 +684,14 @@ function CompaniesPage() {
       setEditingTimeEntryId(null);
       setAddingTimeEntryDate(null);
       setSelectedEmployeePtoRequests([]);
+      setSelectedEmployeeCommissions([]);
 
-      const [timeData, companyPtoData] = await Promise.all([
+      const period = getPayrollPeriod();
+
+      const [timeData, companyPtoData, commissionData] = await Promise.all([
         fetchTimeEntries(employee.id),
         fetchCompanyPtoRequests(id),
+        fetchEmployeeCommissions(employee.id, period.startText, period.endText),
       ]);
 
       const employeeFullName = `${employee.firstName || ""} ${employee.lastName || ""}`
@@ -601,6 +716,7 @@ function CompaniesPage() {
 
       setTimeEntries(timeData);
       setSelectedEmployeePtoRequests(employeePtoRequests);
+      setSelectedEmployeeCommissions(commissionData);
     } catch (err) {
       setError(err.message || "Failed to load time entries");
     }
@@ -612,6 +728,7 @@ function CompaniesPage() {
     setAddingTimeEntryDate(null);
     setTimeEntries([]);
     setSelectedEmployeePtoRequests([]);
+    setSelectedEmployeeCommissions([]);
   }
 
   function handleEditTimeClick(entry) {
@@ -725,7 +842,7 @@ function CompaniesPage() {
       });
   }
 
-  function calculatePayroll(entries, employee) {
+  function calculatePayroll(entries, employee, commissions = []) {
     const totalHours = entries.reduce((sum, entry) => sum + calculateHours(entry), 0);
     const regularHours = Math.min(totalHours, 40);
     const overtimeHours = Math.max(totalHours - 40, 0);
@@ -735,19 +852,22 @@ function CompaniesPage() {
       const period = getPayrollPeriod();
       const days =
         (new Date(period.end) - new Date(period.start)) / (1000 * 60 * 60 * 24) + 1;
-      const grossPay = (annualSalary / 365) * days;
+      const basePay = (annualSalary / 365) * days;
+      const commissionPay = commissions.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
 
-      return { totalHours, regularHours, overtimeHours: 0, grossPay };
+      return { totalHours, regularHours, overtimeHours: 0, commissionPay, grossPay: basePay + commissionPay };
     }
 
     const rate = Number(employee.hourlyRate || 0);
     if (employee.payType === "CONTRACT_1099") {
-      return { totalHours, regularHours: totalHours, overtimeHours: 0, grossPay: totalHours * rate };
+      const commissionPay = commissions.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+      return { totalHours, regularHours: totalHours, overtimeHours: 0, commissionPay, grossPay: totalHours * rate + commissionPay };
     }
 
-    const grossPay = regularHours * rate + overtimeHours * rate * 1.5;
+    const commissionPay = commissions.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+    const grossPay = regularHours * rate + overtimeHours * rate * 1.5 + commissionPay;
 
-    return { totalHours, regularHours, overtimeHours, grossPay };
+    return { totalHours, regularHours, overtimeHours, commissionPay, grossPay };
   }
 
   function toDateOnly(date) {
@@ -795,6 +915,28 @@ function CompaniesPage() {
 
     if (payrollType === "SEMI_MONTHLY") {
       const period = getSemiMonthlyPeriod(companySettingsForm.payday || "FIRST_FIFTEENTH");
+
+      return {
+        start: period.start,
+        end: period.end,
+        startText: toDateOnly(period.start),
+        endText: toDateOnly(period.end),
+      };
+    }
+
+    if (payrollType === "MONTHLY") {
+      const period = getMonthlyPeriod(companySettingsForm.payday || "1");
+
+      return {
+        start: period.start,
+        end: period.end,
+        startText: toDateOnly(period.start),
+        endText: toDateOnly(period.end),
+      };
+    }
+
+    if (payrollType === "QUARTERLY") {
+      const period = getQuarterlyPeriod(companySettingsForm.payday || "1");
 
       return {
         start: period.start,
@@ -896,47 +1038,8 @@ function CompaniesPage() {
     return "pto-status pto-status-pending";
   }
 
-  function PayTypeCheckboxes({ payType, onChange }) {
-    return (
-      <div>
-        <label style={{ marginBottom: 4, display: "block" }}>Pay Type</label>
-
-        <div style={{ display: "flex", gap: 24, marginBottom: 12 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={payType === "HOURLY"}
-              onChange={() => onChange("HOURLY")}
-            />
-            Hourly
-          </label>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={payType === "SALARY"}
-              onChange={() => onChange("SALARY")}
-            />
-            Salary
-          </label>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={payType === "CONTRACT_1099"}
-              onChange={() => onChange("CONTRACT_1099")}
-            />
-            1099
-          </label>
-        </div>
-      </div>
-    );
-  }
-
   if (error) return <p className="error-message">{error}</p>;
   if (!company) return <p>Loading company info...</p>;
-
-  const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
 
   const displayAddress = company.streetAddress
     ? [
@@ -1051,6 +1154,14 @@ function CompaniesPage() {
               onClick={() => handleCompanyTabChange("payroll")}
             >
               Payroll
+            </button>
+
+            <button
+              type="button"
+              className={`employee-tab${activeCompanyTab === "commissions" ? " employee-tab--active" : ""}`}
+              onClick={() => handleCompanyTabChange("commissions")}
+            >
+              Commissions
             </button>
 
             <button
@@ -1314,6 +1425,7 @@ function CompaniesPage() {
                                     payType: type,
                                     hourlyRate: "",
                                     salaryRate: "",
+                                    commissionPercentage: "",
                                   }))
                                 }
                               />
@@ -1328,6 +1440,22 @@ function CompaniesPage() {
                                   value={editForm.hourlyRate}
                                   onChange={handleEditChange}
                                   min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                />
+                              </label>
+                            )}
+
+                            {editForm.payType === "CONTRACT_1099" && (
+                              <label>
+                                Commission Percentage (%)
+                                <input
+                                  type="number"
+                                  name="commissionPercentage"
+                                  value={editForm.commissionPercentage}
+                                  onChange={handleEditChange}
+                                  min="0"
+                                  max="100"
                                   step="0.01"
                                   placeholder="0.00"
                                 />
@@ -1584,7 +1712,7 @@ function CompaniesPage() {
                               {(() => {
                                 const period = getPayrollPeriod();
                                 const payrollEntries = getPayrollEntries(timeEntries);
-                                const payroll = calculatePayroll(payrollEntries, employee);
+                                const payroll = calculatePayroll(payrollEntries, employee, selectedEmployeeCommissions);
 
                                 return (
                                   <div className="payroll-summary workspace-payroll-summary">
@@ -1605,6 +1733,7 @@ function CompaniesPage() {
                                       </p>
                                       <p><strong>Total Hours:</strong> {payroll.totalHours.toFixed(2)}</p>
                                       <p><strong>Regular Hours:</strong> {payroll.regularHours.toFixed(2)}</p>
+                                      <p><strong>Commission:</strong> ${payroll.commissionPay.toFixed(2)}</p>
 
                                       {employee.payType === "HOURLY" && (
                                         <p><strong>Overtime Hours:</strong> {payroll.overtimeHours.toFixed(2)}</p>
@@ -1753,6 +1882,7 @@ function CompaniesPage() {
                         payType: type,
                         hourlyRate: "",
                         salaryRate: "",
+                        commissionPercentage: "",
                       }))
                     }
                   />
@@ -1768,6 +1898,23 @@ function CompaniesPage() {
                       value={employeeForm.hourlyRate}
                       onChange={handleEmployeeChange}
                       min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </label>
+                )}
+
+                {employeeForm.payType === "CONTRACT_1099" && (
+                  <label>
+                    Commission Percentage (%)
+                    <input
+                      type="number"
+                      name="commissionPercentage"
+                      autoComplete="off"
+                      value={employeeForm.commissionPercentage}
+                      onChange={handleEmployeeChange}
+                      min="0"
+                      max="100"
                       step="0.01"
                       placeholder="0.00"
                     />
@@ -1992,6 +2139,8 @@ function CompaniesPage() {
                       <option value="WEEKLY">Weekly</option>
                       <option value="BIWEEKLY">Bi-Weekly</option>
                       <option value="SEMI_MONTHLY">Semi-Monthly</option>
+                      <option value="MONTHLY">Monthly</option>
+                      <option value="QUARTERLY">Quarterly</option>
                     </select>
                   </label>
 
@@ -2008,6 +2157,14 @@ function CompaniesPage() {
                               {option.label}
                             </option>
                           ))
+                        : companySettingsForm.payrollType === "MONTHLY" || companySettingsForm.payrollType === "QUARTERLY"
+                          ? MONTHLY_PAYDAYS.map((day) => (
+                              <option key={day} value={day}>
+                                {companySettingsForm.payrollType === "QUARTERLY"
+                                  ? `${formatDayOfMonth(day)} of each quarter-ending month`
+                                  : `${formatDayOfMonth(day)} of each month`}
+                              </option>
+                            ))
                         : WEEKDAY_PAYDAYS.map((d) => (
                             <option key={d} value={d}>
                               {formatPayday(companySettingsForm.payrollType, d)}
@@ -2097,6 +2254,10 @@ function CompaniesPage() {
                             ? "every two weeks"
                             : companySettingsForm.payrollType === "SEMI_MONTHLY"
                               ? "twice a month"
+                              : companySettingsForm.payrollType === "MONTHLY"
+                                ? "once a month"
+                                : companySettingsForm.payrollType === "QUARTERLY"
+                                  ? "once a quarter"
                               : "every week"}{" "}
                           and employees will be paid on{" "}
                           {formatPayday(companySettingsForm.payrollType, companySettingsForm.payday)}.
@@ -2118,7 +2279,12 @@ function CompaniesPage() {
         companyId={id}
         employees={employees}
         period={getPayrollPeriod()}
+        payrollType={companySettingsForm.payrollType}
+        payday={companySettingsForm.payday}
       />
+    )}
+    {activeCompanyTab === "commissions" && (
+      <CommissionPanel companyId={id} employees={employees} />
     )}
 {activeCompanyTab === "password" && (
   <div className="modern-form-page">
