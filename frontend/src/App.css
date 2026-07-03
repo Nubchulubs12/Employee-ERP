@@ -1376,6 +1376,29 @@ textarea {
   grid-column: 1 / -1;
 }
 
+.time-clock-out-field > label:first-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-time-edit .time-current-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  width: fit-content;
+  cursor: pointer;
+}
+
+.workspace-time-edit .time-current-checkbox input[type="checkbox"] {
+  min-height: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  box-shadow: none;
+}
+
 .workspace-time-grid {
   width: 100%;
   overflow-x: auto;
@@ -1577,7 +1600,7 @@ textarea {
   white-space: nowrap;
 }
 
-.commission-actions button {
+.commission-actions button:not(.modern-save-btn) {
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   background: #fff;

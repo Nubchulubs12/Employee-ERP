@@ -372,15 +372,15 @@ export default function MiniTimeGrid({
                                   <div className="mini-grid-entry-hrs">{hrs} hrs</div>
                                 )}
 
-                                {entry.clockOutTime && (
-                                  <div className="mini-grid-entry-actions">
-                                    <button
-                                      type="button"
-                                      className="mini-btn mini-btn-edit"
-                                      onClick={() => onEdit(entry._sourceEntry || entry)}
-                                    >
-                                      Edit
-                                    </button>
+                                <div className="mini-grid-entry-actions">
+                                  <button
+                                    type="button"
+                                    className="mini-btn mini-btn-edit"
+                                    onClick={() => onEdit(entry._sourceEntry || entry)}
+                                  >
+                                    Edit
+                                  </button>
+                                  {entry.clockOutTime && (
                                     <button
                                       type="button"
                                       className="mini-btn mini-btn-delete"
@@ -388,8 +388,8 @@ export default function MiniTimeGrid({
                                     >
                                       Delete
                                     </button>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </>
                             )}
                           </div>

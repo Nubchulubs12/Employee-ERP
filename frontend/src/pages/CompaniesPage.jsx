@@ -323,7 +323,7 @@ function CompaniesPage() {
   const [selectedEmployeeCommissions, setSelectedEmployeeCommissions] = useState([]);
   const [editingTimeEntryId, setEditingTimeEntryId] = useState(null);
   const [addingTimeEntryDate, setAddingTimeEntryDate] = useState(null);
-  const [timeForm, setTimeForm] = useState({ clockInTime: "", clockOutTime: "" });
+  const [timeForm, setTimeForm] = useState({ clockInTime: "", clockOutTime: "", isCurrent: false });
 
   const [employeeForm, setEmployeeForm] = useState({
     firstName: "",
@@ -740,6 +740,7 @@ function CompaniesPage() {
     setTimeForm({
       clockInTime: entry.clockInTime ? entry.clockInTime.slice(0, 16) : "",
       clockOutTime: entry.clockOutTime ? entry.clockOutTime.slice(0, 16) : "",
+      isCurrent: !entry.clockOutTime,
     });
   }
 
@@ -749,6 +750,7 @@ function CompaniesPage() {
     setTimeForm({
       clockInTime: `${dateKey}T09:00`,
       clockOutTime: `${dateKey}T17:00`,
+      isCurrent: false,
     });
   }
 
@@ -757,13 +759,22 @@ function CompaniesPage() {
     setTimeForm((prev) => ({ ...prev, [name]: value }));
   }
 
+  function handleCurrentTimeChange(e) {
+    const isCurrent = e.target.checked;
+    setTimeForm((prev) => ({
+      ...prev,
+      isCurrent,
+      clockOutTime: isCurrent ? "" : prev.clockOutTime,
+    }));
+  }
+
   async function handleUpdateTimeEntry(e) {
     e.preventDefault();
 
     try {
       const updated = await updateTimeEntry(editingTimeEntryId, {
         clockInTime: timeForm.clockInTime,
-        clockOutTime: timeForm.clockOutTime || null,
+        clockOutTime: timeForm.isCurrent ? null : timeForm.clockOutTime,
       });
 
       setTimeEntries((prev) =>
@@ -771,7 +782,7 @@ function CompaniesPage() {
       );
 
       setEditingTimeEntryId(null);
-      setTimeForm({ clockInTime: "", clockOutTime: "" });
+      setTimeForm({ clockInTime: "", clockOutTime: "", isCurrent: false });
     } catch (err) {
       setError(err.message || "Failed to update time entry");
     }
@@ -1107,7 +1118,7 @@ function CompaniesPage() {
 
       setTimeEntries((prev) => [created, ...prev]);
       setAddingTimeEntryDate(null);
-      setTimeForm({ clockInTime: "", clockOutTime: "" });
+      setTimeForm({ clockInTime: "", clockOutTime: "", isCurrent: false });
       setMessage("Time entry added successfully.");
     } catch (err) {
       setError(err.message || "Failed to create time entry");
@@ -1636,15 +1647,28 @@ function CompaniesPage() {
                                 />
                               </label>
 
-                              <label>
-                                Clock Out
-                                <input
-                                  type="datetime-local"
-                                  name="clockOutTime"
-                                  value={timeForm.clockOutTime}
-                                  onChange={handleTimeFormChange}
-                                />
-                              </label>
+                              <div className="time-clock-out-field">
+                                <label>
+                                  Clock Out
+                                  <input
+                                    type="datetime-local"
+                                    name="clockOutTime"
+                                    value={timeForm.clockOutTime}
+                                    onChange={handleTimeFormChange}
+                                    disabled={timeForm.isCurrent}
+                                    required={!timeForm.isCurrent}
+                                  />
+                                </label>
+
+                                <label className="time-current-checkbox">
+                                  <input
+                                    type="checkbox"
+                                    checked={timeForm.isCurrent}
+                                    onChange={handleCurrentTimeChange}
+                                  />
+                                  Current
+                                </label>
+                              </div>
 
                               <div className="edit-buttons">
                                 <button type="submit">Save Time</button>
@@ -1689,7 +1713,7 @@ function CompaniesPage() {
                                   type="button"
                                   onClick={() => {
                                     setAddingTimeEntryDate(null);
-                                    setTimeForm({ clockInTime: "", clockOutTime: "" });
+                                    setTimeForm({ clockInTime: "", clockOutTime: "", isCurrent: false });
                                   }}
                                 >
                                   Cancel

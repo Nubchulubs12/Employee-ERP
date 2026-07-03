@@ -190,7 +190,13 @@ export default function CommissionPanel({ companyId, employees = [] }) {
                   <td>{entry.notes || "—"}</td>
                   <td>{money(entry.amount)}</td>
                   <td className="commission-actions">
-                    <button type="button" onClick={() => startEdit(entry)}>Edit</button>
+                    <button
+                      type="button"
+                      className="modern-save-btn"
+                      onClick={() => startEdit(entry)}
+                    >
+                      Edit
+                    </button>
                     <button type="button" onClick={() => remove(entry)}>Delete</button>
                   </td>
                 </tr>
