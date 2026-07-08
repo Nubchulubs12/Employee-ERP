@@ -6,6 +6,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.example.erp.models.Company;
 import com.example.erp.models.CompanyPlan;
 import com.example.erp.data.CompanyRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -13,23 +15,30 @@ import java.util.List;
 
 @Service
 public class CompanyService {
+    private static final Logger logger = LoggerFactory.getLogger(CompanyService.class);
     public static final String MAX_EMPLOYEES_MESSAGE = "you have reached the max number off employees this plan is allowed, upgrade to add more employees.";
     public static final String GROWING_MAX_EMPLOYEES_MESSAGE = "You have reached the maximum limit of this plan";
     public static final String TRIAL_EXPIRED_MESSAGE = "Your trial has expired. Upgrade to continue using the company portal.";
     public static final String BILLING_INACTIVE_MESSAGE = "Your subscription is not active. Update billing to continue using the company portal.";
     public static final String PAID_PLAN_REQUIRES_STRIPE_MESSAGE = "Paid plan changes must be completed through Stripe billing.";
+    public static final String INTERNAL_BILLING_STATUS = "INTERNAL";
+    private static final String OWNER_EMAIL = "ncodedsystems@gmail.com";
+    private static final String OWNER_COMPANY_NAME = "Ncoded Systems";
     private static final int TRIAL_DAYS = 30;
 
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     public CompanyService(CompanyRepository companyRepository,
                           EmployeeRepository employeeRepository,
-                          BCryptPasswordEncoder passwordEncoder) {
+                          BCryptPasswordEncoder passwordEncoder,
+                          EmailService emailService) {
         this.companyRepository = companyRepository;
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
     public List<CompanyDto> getAllCompanies() {
@@ -49,12 +58,13 @@ public class CompanyService {
         }
 
         Company company = new Company();
+        CompanyPlan requestedPlan = CompanyPlan.fromCode(request.getPlanCode());
         company.setName(request.getName());
         company.setEmail(request.getEmail());
         company.setPhone(request.getPhone());
         company.setAddress(request.getAddress());
         company.setPwHash(passwordEncoder.encode(request.getPassword()));
-        company.setPlanCode(CompanyPlan.TRIAL.getCode());
+        company.setPlanCode(isInternalCompany(company) ? requestedPlan.getCode() : CompanyPlan.TRIAL.getCode());
         company.setPlanStartedOn(LocalDate.now());
         company.setStreetAddress(request.getStreetAddress());
         company.setAddressLine2(request.getAddressLine2());
@@ -62,14 +72,19 @@ public class CompanyService {
         company.setState(request.getState());
         company.setZip(request.getZip());
         company.setCountry(request.getCountry());
+        applyInternalBillingStatus(company);
 
-        return toDto(companyRepository.save(company));
+        Company savedCompany = companyRepository.save(company);
+        sendWelcomeEmail(savedCompany, requestedPlan);
+
+        return toDto(savedCompany);
     }
 
     public CompanyDto getCompanyById(Long id) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
         ensurePlanStartedOn(company);
+        applyInternalBillingStatus(company);
         return toDto(company);
     }
 
@@ -77,6 +92,7 @@ public class CompanyService {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
         ensurePlanStartedOn(company);
+        applyInternalBillingStatus(company);
         return company;
     }
 
@@ -97,7 +113,9 @@ public class CompanyService {
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
         CompanyPlan plan = CompanyPlan.fromCode(request.getPlanCode());
 
-        if (!plan.isTrial()) {
+        applyInternalBillingStatus(company);
+
+        if (!plan.isTrial() && !isInternalCompany(company)) {
             throw new RuntimeException(PAID_PLAN_REQUIRES_STRIPE_MESSAGE);
         }
 
@@ -109,6 +127,7 @@ public class CompanyService {
 
         company.setPlanCode(plan.getCode());
         company.setPlanStartedOn(LocalDate.now());
+        applyInternalBillingStatus(company);
         return toDto(companyRepository.save(company));
     }
 
@@ -136,6 +155,7 @@ public class CompanyService {
         company.setState(request.getState());
         company.setZip(request.getZip());
         company.setCountry(request.getCountry());
+        applyInternalBillingStatus(company);
 
         return toDto(companyRepository.save(company));
     }
@@ -204,6 +224,12 @@ public class CompanyService {
     }
 
     public void assertCompanyCanWrite(Company company) {
+        applyInternalBillingStatus(company);
+
+        if (isInternalCompany(company)) {
+            return;
+        }
+
         if (hasInactiveBillingStatus(company)) {
             throw new RuntimeException(BILLING_INACTIVE_MESSAGE);
         }
@@ -213,9 +239,23 @@ public class CompanyService {
         }
     }
 
+    public boolean isInternalCompany(Company company) {
+        String email = company.getEmail();
+        String name = company.getName();
+
+        return (email != null && OWNER_EMAIL.equalsIgnoreCase(email.trim()))
+                || (name != null && OWNER_COMPANY_NAME.equalsIgnoreCase(name.trim()));
+    }
+
+    public void applyInternalBillingStatus(Company company) {
+        if (isInternalCompany(company)) {
+            company.setBillingStatus(INTERNAL_BILLING_STATUS);
+        }
+    }
+
     private boolean hasInactiveBillingStatus(Company company) {
         String billingStatus = company.getBillingStatus();
-        if (billingStatus == null || billingStatus.isBlank() || "INTERNAL".equalsIgnoreCase(billingStatus)) {
+        if (billingStatus == null || billingStatus.isBlank() || INTERNAL_BILLING_STATUS.equalsIgnoreCase(billingStatus)) {
             return false;
         }
 
@@ -248,5 +288,21 @@ public class CompanyService {
             company.setPlanStartedOn(LocalDate.now());
             companyRepository.save(company);
         }
+    }
+
+    private void sendWelcomeEmail(Company company, CompanyPlan selectedPlan) {
+        try {
+            emailService.sendWelcomeEmail(company.getEmail(), getPublicPlanName(selectedPlan));
+        } catch (RuntimeException ex) {
+            logger.warn("Welcome email could not be sent to company {}", company.getId(), ex);
+        }
+    }
+
+    public String getPublicPlanName(CompanyPlan plan) {
+        if (plan == CompanyPlan.TRIAL) {
+            return "Free Trial";
+        }
+
+        return plan.getDisplayName();
     }
 }

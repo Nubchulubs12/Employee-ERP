@@ -23,6 +23,10 @@ const US_STATES = [
   "Wisconsin","Wyoming",
 ];
 
+function isInternalAccount(company) {
+  return company?.billingStatus === "INTERNAL";
+}
+
 function Register() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -61,7 +65,7 @@ function Register() {
       const createdCompany = await registerCompany(formData);
       localStorage.setItem("user", JSON.stringify(createdCompany));
 
-      if (selectedPlan.code !== "TRIAL") {
+      if (selectedPlan.code !== "TRIAL" && !isInternalAccount(createdCompany)) {
         const session = await startStripeBillingSession(createdCompany.id, selectedPlan.code);
         window.location.href = session.url;
         return;

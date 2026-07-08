@@ -33,12 +33,15 @@ class EmployeeServiceTierRulesTest {
     @Mock
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Mock
+    private EmailService emailService;
+
     private CompanyService companyService;
     private EmployeeService employeeService;
 
     @BeforeEach
     void setUp() {
-        companyService = new CompanyService(companyRepository, employeeRepository, passwordEncoder);
+        companyService = new CompanyService(companyRepository, employeeRepository, passwordEncoder, emailService);
         employeeService = new EmployeeService(
                 employeeRepository,
                 companyRepository,

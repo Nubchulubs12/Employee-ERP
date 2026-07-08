@@ -90,6 +90,10 @@ function getUpgradeActionLabel(company, plan) {
   return `Upgrade to ${plan.name}`;
 }
 
+function isInternalAccount(company) {
+  return company?.billingStatus === "INTERNAL";
+}
+
 function Pricing() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -144,7 +148,7 @@ function Pricing() {
     setMessage("");
 
     try {
-      if (selectedPlan.code !== "TRIAL") {
+      if (selectedPlan.code !== "TRIAL" && !isInternalAccount(company)) {
         const session = await startStripeBillingSession(upgradeCompanyId, selectedPlan.code);
         window.location.href = session.url;
         return;
@@ -166,12 +170,14 @@ function Pricing() {
       <section className="pricing-hero">
         <div>
           <span className="pricing-eyebrow">
-            {isUpgradeMode ? "Upgrade your ESS plan" : "Simple ESS pricing"}
+            {isInternalAccount(company) ? "Internal ESS account" : isUpgradeMode ? "Upgrade your ESS plan" : "Simple ESS pricing"}
           </span>
           <h1>Choose the plan that fits your team.</h1>
           <p>
             {isUpgradeMode && company
-              ? `${company.name} is currently on the ${getPlanDisplayName(company)} plan.`
+              ? isInternalAccount(company)
+                ? `${company.name} is an internal account. Plan changes do not use Stripe billing.`
+                : `${company.name} is currently on the ${getPlanDisplayName(company)} plan.`
               : "Start with a professional employee self service portal for time, PTO, documents, and payroll summaries."}
           </p>
         </div>
@@ -232,7 +238,7 @@ function Pricing() {
                   onClick={() => handlePlanClick(plan)}
                   className={`pricing-action${plan.featured ? " pricing-action--primary" : ""}${isCurrentPlan ? " pricing-action--current" : ""}`}
                 >
-                  {isCurrentPlan ? "Current plan" : isUpgradeMode ? getUpgradeActionLabel(company, plan) : plan.action}
+                  {isCurrentPlan ? "Current plan" : isUpgradeMode ? isInternalAccount(company) ? `Switch to ${plan.name}` : getUpgradeActionLabel(company, plan) : plan.action}
                 </button>
               )}
             </article>

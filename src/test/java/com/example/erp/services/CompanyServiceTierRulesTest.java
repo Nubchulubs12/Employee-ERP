@@ -38,11 +38,14 @@ class CompanyServiceTierRulesTest {
     @Mock
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Mock
+    private EmailService emailService;
+
     private CompanyService companyService;
 
     @BeforeEach
     void setUp() {
-        companyService = new CompanyService(companyRepository, employeeRepository, passwordEncoder);
+        companyService = new CompanyService(companyRepository, employeeRepository, passwordEncoder, emailService);
     }
 
     @Test
@@ -59,6 +62,23 @@ class CompanyServiceTierRulesTest {
 
         assertEquals(CompanyService.PAID_PLAN_REQUIRES_STRIPE_MESSAGE, exception.getMessage());
         verify(companyRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void internalCompanyCanChangePaidPlanWithoutStripeBilling() {
+        Company company = company(1L, CompanyPlan.TRIAL, LocalDate.now());
+        company.setName("Ncoded Systems");
+        company.setEmail("ncodedsystems@gmail.com");
+        UpdateCompanyPlanRequest request = planRequest(CompanyPlan.GROWING);
+
+        when(companyRepository.findById(company.getId())).thenReturn(Optional.of(company));
+        when(employeeRepository.countByCompanyId(company.getId())).thenReturn(10L);
+        when(companyRepository.save(company)).thenReturn(company);
+
+        CompanyDto updated = companyService.updateCompanyPlan(company.getId(), request);
+
+        assertEquals(CompanyPlan.GROWING.getCode(), updated.getPlanCode());
+        assertEquals(CompanyService.INTERNAL_BILLING_STATUS, updated.getBillingStatus());
     }
 
     @Test

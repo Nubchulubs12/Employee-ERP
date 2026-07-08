@@ -8,6 +8,7 @@ import com.example.erp.models.CompanyPlan;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
+import com.stripe.model.Invoice;
 import com.stripe.model.StripeObject;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
@@ -23,6 +24,8 @@ import java.util.Map;
 @Service
 public class StripeBillingService {
     private final CompanyRepository companyRepository;
+    private final CompanyService companyService;
+    private final EmailService emailService;
     private final String webhookSecret;
     private final String smallPriceId;
     private final String growingPriceId;
@@ -30,6 +33,8 @@ public class StripeBillingService {
 
     public StripeBillingService(
             CompanyRepository companyRepository,
+            CompanyService companyService,
+            EmailService emailService,
             @Value("${app.stripe.secret-key}") String secretKey,
             @Value("${app.stripe.webhook-secret}") String webhookSecret,
             @Value("${app.stripe.small-price-id}") String smallPriceId,
@@ -37,6 +42,8 @@ public class StripeBillingService {
             @Value("${app.frontend-base-url}") String frontendBaseUrl
     ) {
         this.companyRepository = companyRepository;
+        this.companyService = companyService;
+        this.emailService = emailService;
         this.webhookSecret = webhookSecret;
         this.smallPriceId = smallPriceId;
         this.growingPriceId = growingPriceId;
@@ -53,7 +60,9 @@ public class StripeBillingService {
             throw new RuntimeException("Stripe billing is only used for paid plans.");
         }
 
-        if ("INTERNAL".equalsIgnoreCase(company.getBillingStatus())) {
+        if (companyService.isInternalCompany(company)) {
+            companyService.applyInternalBillingStatus(company);
+            companyRepository.save(company);
             throw new RuntimeException("Internal accounts do not use Stripe billing.");
         }
 
@@ -106,6 +115,15 @@ public class StripeBillingService {
             } else if ("customer.subscription.deleted".equals(event.getType())) {
                 handleSubscriptionDeleted(subscription);
             }
+            return;
+        }
+
+        if (stripeObject instanceof Invoice invoice) {
+            if ("invoice.payment_succeeded".equals(event.getType())) {
+                handleInvoicePaymentSucceeded(invoice);
+            } else if ("invoice.payment_failed".equals(event.getType())) {
+                handleInvoicePaymentFailed(invoice);
+            }
         }
     }
 
@@ -120,6 +138,12 @@ public class StripeBillingService {
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + companyId));
 
+        if (companyService.isInternalCompany(company)) {
+            companyService.applyInternalBillingStatus(company);
+            companyRepository.save(company);
+            return;
+        }
+
         company.setPlanCode(plan.getCode());
         company.setPlanStartedOn(LocalDate.now());
         company.setBillingStatus("ACTIVE");
@@ -133,6 +157,12 @@ public class StripeBillingService {
     private void handleSubscriptionUpdated(Subscription subscription) {
         Company company = companyRepository.findByStripeSubscriptionId(subscription.getId()).orElse(null);
         if (company == null) {
+            return;
+        }
+
+        if (companyService.isInternalCompany(company)) {
+            companyService.applyInternalBillingStatus(company);
+            companyRepository.save(company);
             return;
         }
 
@@ -158,9 +188,71 @@ public class StripeBillingService {
             return;
         }
 
+        if (companyService.isInternalCompany(company)) {
+            companyService.applyInternalBillingStatus(company);
+            companyRepository.save(company);
+            return;
+        }
+
         company.setStripeSubscriptionStatus(subscription.getStatus());
         company.setBillingStatus("CANCELED");
         companyRepository.save(company);
+        sendSubscriptionCanceledEmail(company);
+    }
+
+    private void handleInvoicePaymentSucceeded(Invoice invoice) {
+        Company company = getCompanyForInvoice(invoice);
+        if (company == null || companyService.isInternalCompany(company)) {
+            return;
+        }
+
+        sendPaymentSucceededEmail(company);
+    }
+
+    private void handleInvoicePaymentFailed(Invoice invoice) {
+        Company company = getCompanyForInvoice(invoice);
+        if (company == null || companyService.isInternalCompany(company)) {
+            return;
+        }
+
+        sendPaymentFailedEmail(company);
+    }
+
+    private Company getCompanyForInvoice(Invoice invoice) {
+        String customerId = invoice.getCustomer();
+        if (!hasText(customerId)) {
+            return null;
+        }
+
+        return companyRepository.findByStripeCustomerId(customerId).orElse(null);
+    }
+
+    private void sendPaymentSucceededEmail(Company company) {
+        try {
+            CompanyPlan plan = CompanyPlan.fromCode(company.getPlanCode());
+            emailService.sendSubscriptionPaymentSucceeded(
+                    company.getEmail(),
+                    companyService.getPublicPlanName(plan)
+            );
+        } catch (RuntimeException ex) {
+            // Webhooks should still acknowledge Stripe even if notification email fails.
+        }
+    }
+
+    private void sendPaymentFailedEmail(Company company) {
+        try {
+            emailService.sendSubscriptionPaymentFailed(company.getEmail());
+        } catch (RuntimeException ex) {
+            // Webhooks should still acknowledge Stripe even if notification email fails.
+        }
+    }
+
+    private void sendSubscriptionCanceledEmail(Company company) {
+        try {
+            emailService.sendSubscriptionCanceled(company.getEmail());
+        } catch (RuntimeException ex) {
+            // Webhooks should still acknowledge Stripe even if notification email fails.
+        }
     }
 
     private String ensureStripeCustomer(Company company) throws StripeException {

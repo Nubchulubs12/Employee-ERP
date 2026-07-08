@@ -68,6 +68,12 @@ public class Company {
     @Column
     private LocalDate stripeCurrentPeriodEnd;
 
+    @Column
+    private LocalDate freeTrialFiveDayEmailSentOn;
+
+    @Column
+    private LocalDate freeTrialExpirationEmailSentOn;
+
     public Company() {
     }
 
@@ -115,6 +121,12 @@ public class Company {
 
     public LocalDate getStripeCurrentPeriodEnd() { return stripeCurrentPeriodEnd; }
     public void setStripeCurrentPeriodEnd(LocalDate stripeCurrentPeriodEnd) { this.stripeCurrentPeriodEnd = stripeCurrentPeriodEnd; }
+
+    public LocalDate getFreeTrialFiveDayEmailSentOn() { return freeTrialFiveDayEmailSentOn; }
+    public void setFreeTrialFiveDayEmailSentOn(LocalDate freeTrialFiveDayEmailSentOn) { this.freeTrialFiveDayEmailSentOn = freeTrialFiveDayEmailSentOn; }
+
+    public LocalDate getFreeTrialExpirationEmailSentOn() { return freeTrialExpirationEmailSentOn; }
+    public void setFreeTrialExpirationEmailSentOn(LocalDate freeTrialExpirationEmailSentOn) { this.freeTrialExpirationEmailSentOn = freeTrialExpirationEmailSentOn; }
 
     public void setPayrollType(String payrollType) {
         this.payrollType = payrollType;
