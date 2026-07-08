@@ -15,13 +15,16 @@ public class CompanyMonthlyJobService {
 
     private final CompanyMonthlyJobRepository monthlyJobRepository;
     private final CompanyRepository companyRepository;
+    private final CompanyService companyService;
 
     public CompanyMonthlyJobService(
             CompanyMonthlyJobRepository monthlyJobRepository,
-            CompanyRepository companyRepository
+            CompanyRepository companyRepository,
+            CompanyService companyService
     ) {
         this.monthlyJobRepository = monthlyJobRepository;
         this.companyRepository = companyRepository;
+        this.companyService = companyService;
     }
 
     public List<CompanyMonthlyJobDto> getYear(Long companyId, Integer year) {
@@ -43,6 +46,7 @@ public class CompanyMonthlyJobService {
         validateMonth(month);
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + companyId));
+        companyService.assertCompanyCanWrite(company);
 
         CompanyMonthlyJob job = new CompanyMonthlyJob();
         job.setCompany(company);
@@ -59,6 +63,7 @@ public class CompanyMonthlyJobService {
     ) {
         CompanyMonthlyJob job = monthlyJobRepository.findByIdAndCompanyId(jobId, companyId)
                 .orElseThrow(() -> new RuntimeException("Monthly job not found with id: " + jobId));
+        companyService.assertCompanyCanWrite(job.getCompany());
         applyRequest(job, request);
         return toDto(monthlyJobRepository.save(job));
     }
@@ -66,6 +71,7 @@ public class CompanyMonthlyJobService {
     public void delete(Long companyId, Long jobId) {
         CompanyMonthlyJob job = monthlyJobRepository.findByIdAndCompanyId(jobId, companyId)
                 .orElseThrow(() -> new RuntimeException("Monthly job not found with id: " + jobId));
+        companyService.assertCompanyCanWrite(job.getCompany());
         monthlyJobRepository.delete(job);
     }
 

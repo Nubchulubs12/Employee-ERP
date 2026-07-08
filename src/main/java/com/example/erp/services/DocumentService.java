@@ -31,6 +31,7 @@ public class DocumentService {
 
     public DocumentDto uploadDocument(Long companyId, MultipartFile file, String audience) throws IOException {
         Company company = companyService.getCompanyEntityById(companyId);
+        companyService.assertCompanyCanWrite(company);
 
         Document document = new Document();
         document.setFileName(file.getOriginalFilename());
@@ -65,10 +66,9 @@ public class DocumentService {
     }
 
     public void deleteDocument(Long id) {
-        if (!documentRepository.existsById(id)) {
-            throw new RuntimeException("Document not found with id: " + id);
-        }
-        documentRepository.deleteById(id);
+        Document document = getDocumentEntity(id);
+        companyService.assertCompanyCanWrite(document.getCompany());
+        documentRepository.delete(document);
     }
 
     private DocumentDto toDto(Document document) {

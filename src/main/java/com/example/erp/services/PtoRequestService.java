@@ -19,10 +19,14 @@ public class PtoRequestService {
 
     private final PtoRequestRepository ptoRequestRepository;
     private final EmployeeRepository employeeRepository;
+    private final CompanyService companyService;
 
-    public PtoRequestService(PtoRequestRepository ptoRequestRepository, EmployeeRepository employeeRepository) {
+    public PtoRequestService(PtoRequestRepository ptoRequestRepository,
+                             EmployeeRepository employeeRepository,
+                             CompanyService companyService) {
         this.ptoRequestRepository = ptoRequestRepository;
         this.employeeRepository = employeeRepository;
+        this.companyService = companyService;
     }
 
     public PtoRequestDto createRequest(Long employeeId, CreatePtoRequest request) {
@@ -37,6 +41,7 @@ public class PtoRequestService {
 
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + employeeId));
+        companyService.assertCompanyCanWrite(employee.getCompany());
 
         BigDecimal balance = employee.getPtoBalanceHours() == null
                 ? BigDecimal.ZERO
@@ -74,6 +79,7 @@ public class PtoRequestService {
 
     public PtoRequestDto approveRequest(Long requestId, ReviewPtoRequest request) {
         PtoRequest pto = getRequestEntity(requestId);
+        companyService.assertCompanyCanWrite(pto.getEmployee().getCompany());
 
         if (pto.getStatus() == PtoStatus.APPROVED) {
             throw new RuntimeException("PTO request has already been approved.");
@@ -110,6 +116,7 @@ public class PtoRequestService {
 
     public PtoRequestDto denyRequest(Long requestId, ReviewPtoRequest request) {
         PtoRequest pto = getRequestEntity(requestId);
+        companyService.assertCompanyCanWrite(pto.getEmployee().getCompany());
 
         if (pto.getStatus() == PtoStatus.APPROVED) {
             throw new RuntimeException("Approved PTO requests cannot be denied.");

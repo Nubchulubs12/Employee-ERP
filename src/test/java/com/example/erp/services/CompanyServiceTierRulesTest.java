@@ -1,6 +1,7 @@
 package com.example.erp.services;
 
 import com.example.erp.Dto.CompanyDto;
+import com.example.erp.Dto.UpdateCompanySettingsRequest;
 import com.example.erp.Dto.UpdateCompanyPlanRequest;
 import com.example.erp.data.CompanyRepository;
 import com.example.erp.data.EmployeeRepository;
@@ -45,36 +46,35 @@ class CompanyServiceTierRulesTest {
     }
 
     @Test
-    void updateCompanyPlanBlocksPlanWithLowerEmployeeLimitThanCurrentEmployeeCount() {
+    void directPaidPlanChangesRequireStripeBilling() {
         Company company = company(1L, CompanyPlan.GROWING, LocalDate.now());
         UpdateCompanyPlanRequest request = planRequest(CompanyPlan.SMALL);
 
         when(companyRepository.findById(company.getId())).thenReturn(Optional.of(company));
-        when(employeeRepository.countByCompanyId(company.getId())).thenReturn(26L);
 
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> companyService.updateCompanyPlan(company.getId(), request)
         );
 
-        assertEquals(CompanyService.MAX_EMPLOYEES_MESSAGE, exception.getMessage());
+        assertEquals(CompanyService.PAID_PLAN_REQUIRES_STRIPE_MESSAGE, exception.getMessage());
         verify(companyRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
-    void updateCompanyPlanAllowsGrowingAtOneHundredEmployees() {
+    void updateCompanyPlanAllowsTrialPlanWithoutStripe() {
         Company company = company(1L, CompanyPlan.SMALL, LocalDate.now());
-        UpdateCompanyPlanRequest request = planRequest(CompanyPlan.GROWING);
+        UpdateCompanyPlanRequest request = planRequest(CompanyPlan.TRIAL);
 
         when(companyRepository.findById(company.getId())).thenReturn(Optional.of(company));
-        when(employeeRepository.countByCompanyId(company.getId())).thenReturn(100L);
+        when(employeeRepository.countByCompanyId(company.getId())).thenReturn(10L);
         when(companyRepository.save(company)).thenReturn(company);
 
         CompanyDto updated = companyService.updateCompanyPlan(company.getId(), request);
 
-        assertEquals(CompanyPlan.GROWING.getCode(), updated.getPlanCode());
-        assertEquals(CompanyPlan.GROWING.getEmployeeLimit(), updated.getEmployeeLimit());
-        assertNull(updated.getTrialEndsOn());
+        assertEquals(CompanyPlan.TRIAL.getCode(), updated.getPlanCode());
+        assertEquals(CompanyPlan.TRIAL.getEmployeeLimit(), updated.getEmployeeLimit());
+        assertEquals(LocalDate.now().plusDays(30), updated.getTrialEndsOn());
         assertFalse(updated.getTrialExpired());
     }
 
@@ -88,6 +88,24 @@ class CompanyServiceTierRulesTest {
         company.setPlanStartedOn(LocalDate.now().minusDays(31));
 
         assertTrue(companyService.isTrialExpired(company));
+    }
+
+    @Test
+    void expiredTrialCannotUpdateCompanySettings() {
+        Company company = company(1L, CompanyPlan.TRIAL, LocalDate.now().minusDays(31));
+        UpdateCompanySettingsRequest request = new UpdateCompanySettingsRequest();
+        request.setPayrollType("WEEKLY");
+        request.setPayday("FRIDAY");
+
+        when(companyRepository.findById(company.getId())).thenReturn(Optional.of(company));
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> companyService.updateCompanySettings(company.getId(), request)
+        );
+
+        assertEquals(CompanyService.TRIAL_EXPIRED_MESSAGE, exception.getMessage());
+        verify(companyRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     private Company company(Long id, CompanyPlan plan, LocalDate planStartedOn) {

@@ -29,6 +29,12 @@ spring:
     show-sql: true
 
 app:
+  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    small-price-id: ${STRIPE_SMALL_PRICE_ID:}
+    growing-price-id: ${STRIPE_GROWING_PRICE_ID:}
   mail:
     from: ${MAIL_FROM:${MAIL_USERNAME:ncodedsystems@gmail.com}}
     display-name: ${MAIL_DISPLAY_NAME:Ncoded Systems}

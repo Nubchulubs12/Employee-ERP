@@ -16,6 +16,8 @@ public class CompanyService {
     public static final String MAX_EMPLOYEES_MESSAGE = "you have reached the max number off employees this plan is allowed, upgrade to add more employees.";
     public static final String GROWING_MAX_EMPLOYEES_MESSAGE = "You have reached the maximum limit of this plan";
     public static final String TRIAL_EXPIRED_MESSAGE = "Your trial has expired. Upgrade to continue using the company portal.";
+    public static final String BILLING_INACTIVE_MESSAGE = "Your subscription is not active. Update billing to continue using the company portal.";
+    public static final String PAID_PLAN_REQUIRES_STRIPE_MESSAGE = "Paid plan changes must be completed through Stripe billing.";
     private static final int TRIAL_DAYS = 30;
 
     private final CompanyRepository companyRepository;
@@ -47,13 +49,12 @@ public class CompanyService {
         }
 
         Company company = new Company();
-        CompanyPlan plan = CompanyPlan.fromCode(request.getPlanCode());
         company.setName(request.getName());
         company.setEmail(request.getEmail());
         company.setPhone(request.getPhone());
         company.setAddress(request.getAddress());
         company.setPwHash(passwordEncoder.encode(request.getPassword()));
-        company.setPlanCode(plan.getCode());
+        company.setPlanCode(CompanyPlan.TRIAL.getCode());
         company.setPlanStartedOn(LocalDate.now());
         company.setStreetAddress(request.getStreetAddress());
         company.setAddressLine2(request.getAddressLine2());
@@ -82,6 +83,7 @@ public class CompanyService {
     public CompanyDto updateCompanySettings(Long id, UpdateCompanySettingsRequest request) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
+        assertCompanyCanWrite(company);
 
         company.setPayrollType(request.getPayrollType());
         company.setPayday(request.getPayday());
@@ -94,6 +96,11 @@ public class CompanyService {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
         CompanyPlan plan = CompanyPlan.fromCode(request.getPlanCode());
+
+        if (!plan.isTrial()) {
+            throw new RuntimeException(PAID_PLAN_REQUIRES_STRIPE_MESSAGE);
+        }
+
         long currentEmployeeCount = employeeRepository.countByCompanyId(company.getId());
 
         if (currentEmployeeCount > plan.getEmployeeLimit()) {
@@ -108,6 +115,7 @@ public class CompanyService {
     public CompanyDto updateCompanyInfo(Long id, UpdateCompanyInfoRequest request) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
+        assertCompanyCanWrite(company);
 
         // Only validate email if it changed
         if (!company.getEmail().equalsIgnoreCase(request.getEmail())) {
@@ -135,6 +143,7 @@ public class CompanyService {
     public void changePassword(Long id, ChangePasswordRequest request) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
+        assertCompanyCanWrite(company);
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), company.getPwHash())) {
             throw new RuntimeException("Current password is incorrect.");
@@ -173,7 +182,10 @@ public class CompanyService {
                 plan.getEmployeeLimit(),
                 planStartedOn,
                 trialEndsOn,
-                isTrialExpired(company)
+                isTrialExpired(company),
+                company.getBillingStatus(),
+                company.getStripeSubscriptionStatus(),
+                company.getStripeCurrentPeriodEnd()
         );
     }
 
@@ -184,6 +196,33 @@ public class CompanyService {
         return plan.isTrial()
                 && trialEndsOn != null
                 && LocalDate.now().isAfter(trialEndsOn);
+    }
+
+    public void assertCompanyCanWrite(Long companyId) {
+        Company company = getCompanyEntityById(companyId);
+        assertCompanyCanWrite(company);
+    }
+
+    public void assertCompanyCanWrite(Company company) {
+        if (hasInactiveBillingStatus(company)) {
+            throw new RuntimeException(BILLING_INACTIVE_MESSAGE);
+        }
+
+        if (isTrialExpired(company)) {
+            throw new RuntimeException(TRIAL_EXPIRED_MESSAGE);
+        }
+    }
+
+    private boolean hasInactiveBillingStatus(Company company) {
+        String billingStatus = company.getBillingStatus();
+        if (billingStatus == null || billingStatus.isBlank() || "INTERNAL".equalsIgnoreCase(billingStatus)) {
+            return false;
+        }
+
+        return "CANCELED".equalsIgnoreCase(billingStatus)
+                || "PAST_DUE".equalsIgnoreCase(billingStatus)
+                || "UNPAID".equalsIgnoreCase(billingStatus)
+                || "INCOMPLETE_EXPIRED".equalsIgnoreCase(billingStatus);
     }
 
     public LocalDate getTrialEndsOn(Company company) {

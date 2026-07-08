@@ -15,13 +15,16 @@ public class CompanyMonthlyProfitService {
 
     private final CompanyMonthlyProfitRepository monthlyProfitRepository;
     private final CompanyRepository companyRepository;
+    private final CompanyService companyService;
 
     public CompanyMonthlyProfitService(
             CompanyMonthlyProfitRepository monthlyProfitRepository,
-            CompanyRepository companyRepository
+            CompanyRepository companyRepository,
+            CompanyService companyService
     ) {
         this.monthlyProfitRepository = monthlyProfitRepository;
         this.companyRepository = companyRepository;
+        this.companyService = companyService;
     }
 
     public List<CompanyMonthlyProfitDto> getYear(Long companyId, Integer year) {
@@ -45,6 +48,7 @@ public class CompanyMonthlyProfitService {
         validateMonth(month);
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + companyId));
+        companyService.assertCompanyCanWrite(company);
 
         CompanyMonthlyProfit monthlyProfit = monthlyProfitRepository
                 .findByCompanyIdAndProfitYearAndProfitMonth(companyId, year, month)

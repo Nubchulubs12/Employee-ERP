@@ -31,6 +31,9 @@ class CompanyMonthlyProfitServiceTest {
     @Mock
     private CompanyRepository companyRepository;
 
+    @Mock
+    private CompanyService companyService;
+
     @InjectMocks
     private CompanyMonthlyProfitService monthlyProfitService;
 

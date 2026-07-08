@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { registerCompany } from '../api/companyApi';
+import { registerCompany, startStripeBillingSession } from '../api/companyApi';
 
 const PLANS = [
-  { code: "TRIAL", name: "Trial", limit: "Up to 10 employees for 30 days" },
+  { code: "TRIAL", name: "Free Trial", limit: "Up to 10 employees for 30 days" },
   { code: "SMALL", name: "Small", limit: "Up to 25 employees" },
   { code: "GROWING", name: "Growing", limit: "Up to 100 employees" },
 ];
@@ -60,6 +60,13 @@ function Register() {
     try {
       const createdCompany = await registerCompany(formData);
       localStorage.setItem("user", JSON.stringify(createdCompany));
+
+      if (selectedPlan.code !== "TRIAL") {
+        const session = await startStripeBillingSession(createdCompany.id, selectedPlan.code);
+        window.location.href = session.url;
+        return;
+      }
+
       setMessage("Registered successfully!");
       navigate(`/companies/${createdCompany.id}`);
     } catch (err) {

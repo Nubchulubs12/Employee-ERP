@@ -16,15 +16,20 @@ public class TimeEntryService {
 
     private final TimeEntryRepository timeEntryRepository;
     private final EmployeeRepository employeeRepository;
+    private final CompanyService companyService;
 
-    public TimeEntryService(TimeEntryRepository timeEntryRepository, EmployeeRepository employeeRepository) {
+    public TimeEntryService(TimeEntryRepository timeEntryRepository,
+                            EmployeeRepository employeeRepository,
+                            CompanyService companyService) {
         this.timeEntryRepository = timeEntryRepository;
         this.employeeRepository = employeeRepository;
+        this.companyService = companyService;
     }
 
     public TimeEntryDto clockIn(Long employeeId) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + employeeId));
+        companyService.assertCompanyCanWrite(employee.getCompany());
 
         boolean alreadyClockedIn = timeEntryRepository
                 .findFirstByEmployeeIdAndClockOutTimeIsNullOrderByClockInTimeDesc(employeeId)
@@ -50,6 +55,7 @@ public class TimeEntryService {
     public TimeEntryDto createTimeEntry(Long employeeId, UpdateTimeEntryRequest request) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + employeeId));
+        companyService.assertCompanyCanWrite(employee.getCompany());
 
         validateTimeEntryRequest(request);
 
@@ -70,6 +76,7 @@ public class TimeEntryService {
         TimeEntry entry = timeEntryRepository
                 .findFirstByEmployeeIdAndClockOutTimeIsNullOrderByClockInTimeDesc(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee is not currently clocked in."));
+        companyService.assertCompanyCanWrite(entry.getEmployee().getCompany());
 
         ZoneId zone = ZoneId.of("America/Chicago");
         LocalDateTime now = LocalDateTime.now(zone);
@@ -81,12 +88,14 @@ public class TimeEntryService {
     public void deleteTimeEntry(Long entryId) {
         TimeEntry entry = timeEntryRepository.findById(entryId)
                 .orElseThrow(() -> new RuntimeException("Time entry not found with id: " + entryId));
+        companyService.assertCompanyCanWrite(entry.getEmployee().getCompany());
         timeEntryRepository.delete(entry);
     }
 
     public TimeEntryDto updateTimeEntry(Long entryId, UpdateTimeEntryRequest request) {
         TimeEntry entry = timeEntryRepository.findById(entryId)
                 .orElseThrow(() -> new RuntimeException("Time entry not found with id: " + entryId));
+        companyService.assertCompanyCanWrite(entry.getEmployee().getCompany());
 
         validateTimeEntryRequest(request);
 

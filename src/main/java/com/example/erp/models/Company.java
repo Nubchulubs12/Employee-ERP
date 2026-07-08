@@ -50,6 +50,24 @@ public class Company {
     @Column
     private LocalDate planStartedOn;
 
+    @Column
+    private String billingStatus;
+
+    @Column
+    private String stripeCustomerId;
+
+    @Column
+    private String stripeSubscriptionId;
+
+    @Column
+    private String stripePriceId;
+
+    @Column
+    private String stripeSubscriptionStatus;
+
+    @Column
+    private LocalDate stripeCurrentPeriodEnd;
+
     public Company() {
     }
 
@@ -79,6 +97,24 @@ public class Company {
 
     public LocalDate getPlanStartedOn() { return planStartedOn; }
     public void setPlanStartedOn(LocalDate planStartedOn) { this.planStartedOn = planStartedOn; }
+
+    public String getBillingStatus() { return billingStatus; }
+    public void setBillingStatus(String billingStatus) { this.billingStatus = billingStatus; }
+
+    public String getStripeCustomerId() { return stripeCustomerId; }
+    public void setStripeCustomerId(String stripeCustomerId) { this.stripeCustomerId = stripeCustomerId; }
+
+    public String getStripeSubscriptionId() { return stripeSubscriptionId; }
+    public void setStripeSubscriptionId(String stripeSubscriptionId) { this.stripeSubscriptionId = stripeSubscriptionId; }
+
+    public String getStripePriceId() { return stripePriceId; }
+    public void setStripePriceId(String stripePriceId) { this.stripePriceId = stripePriceId; }
+
+    public String getStripeSubscriptionStatus() { return stripeSubscriptionStatus; }
+    public void setStripeSubscriptionStatus(String stripeSubscriptionStatus) { this.stripeSubscriptionStatus = stripeSubscriptionStatus; }
+
+    public LocalDate getStripeCurrentPeriodEnd() { return stripeCurrentPeriodEnd; }
+    public void setStripeCurrentPeriodEnd(LocalDate stripeCurrentPeriodEnd) { this.stripeCurrentPeriodEnd = stripeCurrentPeriodEnd; }
 
     public void setPayrollType(String payrollType) {
         this.payrollType = payrollType;

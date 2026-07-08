@@ -77,9 +77,7 @@ public class EmployeeService {
         CompanyPlan plan = CompanyPlan.fromCode(company.getPlanCode());
         long currentEmployeeCount = employeeRepository.countByCompanyId(company.getId());
 
-        if (companyService.isTrialExpired(company)) {
-            throw new RuntimeException(CompanyService.TRIAL_EXPIRED_MESSAGE);
-        }
+        companyService.assertCompanyCanWrite(company);
 
         if (currentEmployeeCount >= plan.getEmployeeLimit()) {
             throw new RuntimeException(companyService.getMaxEmployeesMessage(plan));
@@ -108,6 +106,7 @@ public class EmployeeService {
     public EmployeeDto updateEmployee(Long id, UpdateEmployeeRequest request) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+        companyService.assertCompanyCanWrite(employee.getCompany());
 
 
         if (!employee.getEmail().equalsIgnoreCase(request.getEmail())) {
@@ -138,6 +137,7 @@ public class EmployeeService {
     public EmployeeDto updateEmployeeProfile(Long id, UpdateEmployeeProfileRequest request) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+        companyService.assertCompanyCanWrite(employee.getCompany());
 
         employee.setPhone(request.getPhone());
         employee.setStreetAddress(request.getStreetAddress());
@@ -153,10 +153,10 @@ public class EmployeeService {
     }
 
     public void deleteEmployee(Long id) {
-        if (!employeeRepository.existsById(id)) {
-            throw new RuntimeException("Employee not found with id: " + id);
-        }
-        employeeRepository.deleteById(id);
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+        companyService.assertCompanyCanWrite(employee.getCompany());
+        employeeRepository.delete(employee);
     }
 
     public List<EmployeeDto> getEmployeeByCompanyId(Long companyId) {
@@ -169,6 +169,7 @@ public class EmployeeService {
     public void changePassword(Long id, ChangePasswordRequest request) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+        companyService.assertCompanyCanWrite(employee.getCompany());
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), employee.getPwHash())) {
             throw new RuntimeException("Current password is incorrect.");

@@ -34,18 +34,21 @@ public class PasswordResetService {
     private final PasswordResetCodeRepository passwordResetCodeRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final CompanyService companyService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public PasswordResetService(CompanyRepository companyRepository,
                                 EmployeeRepository employeeRepository,
                                 PasswordResetCodeRepository passwordResetCodeRepository,
                                 BCryptPasswordEncoder passwordEncoder,
-                                EmailService emailService) {
+                                EmailService emailService,
+                                CompanyService companyService) {
         this.companyRepository = companyRepository;
         this.employeeRepository = employeeRepository;
         this.passwordResetCodeRepository = passwordResetCodeRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.companyService = companyService;
     }
 
     @Transactional
@@ -89,11 +92,13 @@ public class PasswordResetService {
         if (request.getAccountType() == AccountType.COMPANY) {
             Company company = companyRepository.findByEmail(email)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid or expired reset code."));
+            companyService.assertCompanyCanWrite(company);
             company.setPwHash(encodedPassword);
             companyRepository.save(company);
         } else {
             Employee employee = employeeRepository.findByEmail(email)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid or expired reset code."));
+            companyService.assertCompanyCanWrite(employee.getCompany());
             employee.setPwHash(encodedPassword);
             employeeRepository.save(employee);
         }

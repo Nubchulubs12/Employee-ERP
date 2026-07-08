@@ -63,6 +63,16 @@ export async function updateCompanyPlan(id, planCode) {
   return readResponse(response, "Failed to update company plan");
 }
 
+export async function startStripeBillingSession(companyId, planCode) {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const response = await fetch(`${apiBaseUrl}/api/stripe/billing-session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ companyId, planCode }),
+  });
+  return readResponse(response, "Failed to start Stripe billing");
+}
+
 
 export async function updateCompanyInfo(id, info) {
   const response = await fetch(`${BASE_URL}/${id}`, {

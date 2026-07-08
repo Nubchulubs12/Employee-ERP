@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchCompanyById, updateCompanyPlan } from "../api/companyApi";
+import { fetchCompanyById, startStripeBillingSession, updateCompanyPlan } from "../api/companyApi";
 import "../App.css";
 
 const plans = [
   {
     code: "TRIAL",
-    name: "Trial",
+    name: "Free Trial",
     range: "30 days",
-    description: "Try the portal for 30 days with up to 10 employees.",
-    action: "Start Trial",
+    description: "Try the portal for 30 days. After trial ends your account becomes read-only until you choose a paid plan. No automatic charges.",
+    action: "Start Free Trial",
     to: "/register?plan=TRIAL",
     featured: false,
     features: [
@@ -74,6 +74,22 @@ function updateStoredCompany(updatedCompany) {
   }
 }
 
+function getPlanDisplayName(company) {
+  if (company?.planCode === "TRIAL") {
+    return "Free Trial";
+  }
+
+  return company?.planName || "Free Trial";
+}
+
+function getUpgradeActionLabel(company, plan) {
+  if (company?.planCode === "GROWING" && plan.code === "SMALL") {
+    return "Downgrade to Small";
+  }
+
+  return `Upgrade to ${plan.name}`;
+}
+
 function Pricing() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -84,6 +100,7 @@ function Pricing() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const checkoutStatus = searchParams.get("checkout");
 
   const isUpgradeMode = Boolean(upgradeCompanyId);
 
@@ -127,6 +144,12 @@ function Pricing() {
     setMessage("");
 
     try {
+      if (selectedPlan.code !== "TRIAL") {
+        const session = await startStripeBillingSession(upgradeCompanyId, selectedPlan.code);
+        window.location.href = session.url;
+        return;
+      }
+
       const updatedCompany = await updateCompanyPlan(upgradeCompanyId, selectedPlan.code);
       updateStoredCompany(updatedCompany);
       navigate(`/companies/${updatedCompany.id}`);
@@ -148,7 +171,7 @@ function Pricing() {
           <h1>Choose the plan that fits your team.</h1>
           <p>
             {isUpgradeMode && company
-              ? `${company.name} is currently on the ${company.planName || "Trial"} plan.`
+              ? `${company.name} is currently on the ${getPlanDisplayName(company)} plan.`
               : "Start with a professional employee self service portal for time, PTO, documents, and payroll summaries."}
           </p>
         </div>
@@ -161,9 +184,24 @@ function Pricing() {
         </div>
       )}
 
+      {checkoutStatus === "success" && (
+        <div className="pricing-status">
+          <p className="success-message">Stripe checkout completed. Your plan will update after Stripe confirms the subscription.</p>
+        </div>
+      )}
+
+      {checkoutStatus === "cancel" && (
+        <div className="pricing-status">
+          <p className="error-message">Stripe checkout was canceled. No billing changes were made.</p>
+        </div>
+      )}
+
       <section className="pricing-grid" aria-label="Pricing plans">
         {plans.map((plan) => {
           const isCurrentPlan = company?.planCode === plan.code;
+          const hideAction = isUpgradeMode
+            && ["SMALL", "GROWING"].includes(company?.planCode)
+            && plan.code === "TRIAL";
 
           return (
             <article
@@ -187,14 +225,16 @@ function Pricing() {
                 ))}
               </ul>
 
-              <button
-                type="button"
-                disabled={isCurrentPlan || saving}
-                onClick={() => handlePlanClick(plan)}
-                className={`pricing-action${plan.featured ? " pricing-action--primary" : ""}${isCurrentPlan ? " pricing-action--current" : ""}`}
-              >
-                {isCurrentPlan ? "Current plan" : isUpgradeMode ? `Upgrade to ${plan.name}` : plan.action}
-              </button>
+              {!hideAction && (
+                <button
+                  type="button"
+                  disabled={isCurrentPlan || saving}
+                  onClick={() => handlePlanClick(plan)}
+                  className={`pricing-action${plan.featured ? " pricing-action--primary" : ""}${isCurrentPlan ? " pricing-action--current" : ""}`}
+                >
+                  {isCurrentPlan ? "Current plan" : isUpgradeMode ? getUpgradeActionLabel(company, plan) : plan.action}
+                </button>
+              )}
             </article>
           );
         })}

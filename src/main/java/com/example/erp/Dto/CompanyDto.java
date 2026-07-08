@@ -23,6 +23,9 @@ public class CompanyDto {
     private LocalDate planStartedOn;
     private LocalDate trialEndsOn;
     private Boolean trialExpired;
+    private String billingStatus;
+    private String stripeSubscriptionStatus;
+    private LocalDate stripeCurrentPeriodEnd;
 
     public CompanyDto() {}
 
@@ -46,7 +49,10 @@ public class CompanyDto {
             Integer employeeLimit,
             LocalDate planStartedOn,
             LocalDate trialEndsOn,
-            Boolean trialExpired
+            Boolean trialExpired,
+            String billingStatus,
+            String stripeSubscriptionStatus,
+            LocalDate stripeCurrentPeriodEnd
     ) {
         this.id = id;
         this.name = name;
@@ -68,6 +74,9 @@ public class CompanyDto {
         this.planStartedOn = planStartedOn;
         this.trialEndsOn = trialEndsOn;
         this.trialExpired = trialExpired;
+        this.billingStatus = billingStatus;
+        this.stripeSubscriptionStatus = stripeSubscriptionStatus;
+        this.stripeCurrentPeriodEnd = stripeCurrentPeriodEnd;
     }
 
     public Long getId() { return id; }
@@ -129,4 +138,13 @@ public class CompanyDto {
 
     public Boolean getTrialExpired() { return trialExpired; }
     public void setTrialExpired(Boolean trialExpired) { this.trialExpired = trialExpired; }
+
+    public String getBillingStatus() { return billingStatus; }
+    public void setBillingStatus(String billingStatus) { this.billingStatus = billingStatus; }
+
+    public String getStripeSubscriptionStatus() { return stripeSubscriptionStatus; }
+    public void setStripeSubscriptionStatus(String stripeSubscriptionStatus) { this.stripeSubscriptionStatus = stripeSubscriptionStatus; }
+
+    public LocalDate getStripeCurrentPeriodEnd() { return stripeCurrentPeriodEnd; }
+    public void setStripeCurrentPeriodEnd(LocalDate stripeCurrentPeriodEnd) { this.stripeCurrentPeriodEnd = stripeCurrentPeriodEnd; }
 }

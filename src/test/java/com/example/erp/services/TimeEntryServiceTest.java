@@ -33,11 +33,14 @@ class TimeEntryServiceTest {
     @Mock
     private EmployeeRepository employeeRepository;
 
+    @Mock
+    private CompanyService companyService;
+
     private TimeEntryService timeEntryService;
 
     @BeforeEach
     void setUp() {
-        timeEntryService = new TimeEntryService(timeEntryRepository, employeeRepository);
+        timeEntryService = new TimeEntryService(timeEntryRepository, employeeRepository, companyService);
     }
 
     @Test

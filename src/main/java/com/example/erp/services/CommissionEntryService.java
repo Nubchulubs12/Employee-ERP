@@ -19,19 +19,23 @@ public class CommissionEntryService {
     private final CommissionEntryRepository commissionEntryRepository;
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
+    private final CompanyService companyService;
 
     public CommissionEntryService(
             CommissionEntryRepository commissionEntryRepository,
             CompanyRepository companyRepository,
-            EmployeeRepository employeeRepository
+            EmployeeRepository employeeRepository,
+            CompanyService companyService
     ) {
         this.commissionEntryRepository = commissionEntryRepository;
         this.companyRepository = companyRepository;
         this.employeeRepository = employeeRepository;
+        this.companyService = companyService;
     }
 
     public CommissionEntryDto create(Long companyId, SaveCommissionEntryRequest request) {
         Company company = getCompany(companyId);
+        companyService.assertCompanyCanWrite(company);
         Employee employee = getCompanyEmployee(companyId, request.getEmployeeId());
         CommissionEntry entry = new CommissionEntry();
         entry.setCompany(company);
@@ -42,13 +46,16 @@ public class CommissionEntryService {
 
     public CommissionEntryDto update(Long companyId, Long entryId, SaveCommissionEntryRequest request) {
         CommissionEntry entry = getCompanyEntry(companyId, entryId);
+        companyService.assertCompanyCanWrite(entry.getCompany());
         entry.setEmployee(getCompanyEmployee(companyId, request.getEmployeeId()));
         apply(entry, request);
         return toDto(commissionEntryRepository.save(entry));
     }
 
     public void delete(Long companyId, Long entryId) {
-        commissionEntryRepository.delete(getCompanyEntry(companyId, entryId));
+        CommissionEntry entry = getCompanyEntry(companyId, entryId);
+        companyService.assertCompanyCanWrite(entry.getCompany());
+        commissionEntryRepository.delete(entry);
     }
 
     public List<CommissionEntryDto> getForCompany(Long companyId, LocalDate startDate, LocalDate endDate) {

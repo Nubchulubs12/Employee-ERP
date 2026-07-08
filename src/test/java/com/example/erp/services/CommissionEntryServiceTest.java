@@ -25,6 +25,7 @@ class CommissionEntryServiceTest {
     private CommissionEntryRepository commissionRepository;
     private CompanyRepository companyRepository;
     private EmployeeRepository employeeRepository;
+    private CompanyService companyService;
     private CommissionEntryService service;
     private Company company;
     private Employee employee;
@@ -34,7 +35,13 @@ class CommissionEntryServiceTest {
         commissionRepository = mock(CommissionEntryRepository.class);
         companyRepository = mock(CompanyRepository.class);
         employeeRepository = mock(EmployeeRepository.class);
-        service = new CommissionEntryService(commissionRepository, companyRepository, employeeRepository);
+        companyService = mock(CompanyService.class);
+        service = new CommissionEntryService(
+                commissionRepository,
+                companyRepository,
+                employeeRepository,
+                companyService
+        );
 
         company = new Company();
         company.setId(7L);
