@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from "react-router-dom";
-import { fetchCompanyById, updateCompanySettings, updateCompanyInfo, changeCompanyPassword } from '../api/companyApi';
+import {
+  cancelStripeSubscription,
+  changeCompanyPassword,
+  fetchBillingDetails,
+  fetchCompanyById,
+  fetchStripeInvoices,
+  updateCompanyInfo,
+  updateCompanySettings,
+} from '../api/companyApi';
 import {
   fetchEmployees,
   createEmployee,
@@ -89,6 +97,19 @@ function formatEmployeePayType(payType) {
   if (payType === "SALARY") return "Salary";
   if (payType === "CONTRACT_1099") return "1099";
   return "Hourly";
+}
+
+function formatBillingValue(value) {
+  if (!value) return "Not available";
+  return value
+    .toString()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function formatCurrencyFromCents(cents) {
+  return `$${(Number(cents || 0) / 100).toFixed(2)}`;
 }
 
 function getEmployeePayRateLabel(payType) {
@@ -351,6 +372,12 @@ function CompaniesPage() {
     confirmPassword: "",
   });
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const [billingDetails, setBillingDetails] = useState(null);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [invoices, setInvoices] = useState([]);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [invoiceMessage, setInvoiceMessage] = useState("");
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   useEffect(() => {
     async function loadCompany() {
@@ -406,6 +433,59 @@ function CompaniesPage() {
     setEditingEmployeeId(null);
     setEditingTimeEntryId(null);
     setAddingTimeEntryDate(null);
+
+    if (tab === "billing") {
+      loadBillingDetails();
+    }
+  }
+
+  async function loadBillingDetails() {
+    setBillingLoading(true);
+    setError("");
+
+    try {
+      const data = await fetchBillingDetails(id);
+      setBillingDetails(data);
+    } catch (err) {
+      setError(err.message || "Failed to load billing details");
+    } finally {
+      setBillingLoading(false);
+    }
+  }
+
+  async function handleOpenInvoices() {
+    setError("");
+    setInvoiceMessage("");
+    setInvoiceLoading(true);
+
+    try {
+      const data = await fetchStripeInvoices(id);
+      setInvoices(data || []);
+      if (!data || data.length === 0) {
+        setInvoiceMessage("Invoices are not available yet for this company.");
+      }
+    } catch (err) {
+      setInvoices([]);
+      setInvoiceMessage("Invoices are unavailable right now. Check Stripe setup and try again.");
+    } finally {
+      setInvoiceLoading(false);
+    }
+  }
+
+  async function handleCancelSubscription() {
+    setError("");
+    setMessage("");
+
+    try {
+      await cancelStripeSubscription(id);
+      setShowCancelConfirm(false);
+      setMessage("Subscription canceled. This company account can no longer log in.");
+      const refreshedCompany = await fetchCompanyById(id);
+      setCompany(refreshedCompany);
+      await loadBillingDetails();
+    } catch (err) {
+      setError(err.message || "Failed to cancel subscription");
+    }
   }
 
   function handleCompanyInfoChange(e) {
@@ -1197,6 +1277,14 @@ function CompaniesPage() {
               onClick={() => handleCompanyTabChange("password")}
             >
               Change Password
+            </button>
+
+            <button
+              type="button"
+              className={`employee-tab${activeCompanyTab === "billing" ? " employee-tab--active" : ""}`}
+              onClick={() => handleCompanyTabChange("billing")}
+            >
+              Billing
             </button>
 
             <button type="button" className={`employee-tab${activeCompanyTab === "documents" ? " employee-tab--active" : ""}`} onClick={() => handleCompanyTabChange("documents")}>
@@ -2309,6 +2397,105 @@ function CompaniesPage() {
     )}
     {activeCompanyTab === "commissions" && (
       <CommissionPanel companyId={id} employees={employees} />
+    )}
+    {activeCompanyTab === "billing" && (
+      <div className="modern-form-page">
+        <div className="modern-settings-hero">
+          <div>
+            <h1>Billing</h1>
+            <p>View plan, subscription status, invoices, and cancellation options.</p>
+          </div>
+          <div className="hero-art">💳</div>
+        </div>
+
+        <div className="modern-card billing-card">
+          <div className="modern-card-header">
+            <div className="modern-icon blue">💳</div>
+            <div>
+              <h2>Subscription</h2>
+              <p>Billing details are managed through Stripe for paid plans.</p>
+            </div>
+          </div>
+
+          {error && <p className="error-message">{error}</p>}
+          {message && <p className="success-message">{message}</p>}
+
+          {billingLoading ? (
+            <p>Loading billing details...</p>
+          ) : (
+            <>
+              <div className="billing-detail-grid">
+                <div className="billing-detail-item">
+                  <span>View plan</span>
+                  <strong>{billingDetails?.planName || company.planName || "Free Trial"}</strong>
+                </div>
+                <div className="billing-detail-item">
+                  <span>View status</span>
+                  <strong>{formatBillingValue(billingDetails?.billingStatus || company.billingStatus || company.stripeSubscriptionStatus)}</strong>
+                </div>
+                <div className="billing-detail-item">
+                  <span>View next billing date</span>
+                  <strong>{billingDetails?.nextBillingDate || "Not available"}</strong>
+                </div>
+              </div>
+
+              <div className="billing-actions">
+                <button type="button" className="modern-save-btn" onClick={handleOpenInvoices}>
+                  {invoiceLoading ? "Loading invoices..." : "View invoices via Stripe"}
+                </button>
+                <button type="button" className="billing-cancel-btn" onClick={() => setShowCancelConfirm(true)}>
+                  Cancel subscription
+                </button>
+              </div>
+
+              {invoiceMessage && <p className="billing-empty-message">{invoiceMessage}</p>}
+
+              {invoices.length > 0 && (
+                <div className="billing-invoice-table">
+                  <div className="billing-invoice-row billing-invoice-row--header">
+                    <span>Date</span>
+                    <span>Amount paid</span>
+                    <span>Status</span>
+                    <span>Links</span>
+                  </div>
+                  {invoices.map((invoice, index) => (
+                    <div className="billing-invoice-row" key={`${invoice.hostedInvoiceUrl || invoice.invoicePdf || index}`}>
+                      <span>{invoice.invoiceDate || "Not available"}</span>
+                      <span>{formatCurrencyFromCents(invoice.amountPaid)}</span>
+                      <span>{formatBillingValue(invoice.status)}</span>
+                      <span className="billing-invoice-links">
+                        {invoice.hostedInvoiceUrl && (
+                          <a href={invoice.hostedInvoiceUrl} target="_blank" rel="noreferrer">Invoice</a>
+                        )}
+                        {invoice.invoicePdf && (
+                          <a href={invoice.invoicePdf} target="_blank" rel="noreferrer">PDF</a>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {showCancelConfirm && (
+          <div className="plan-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="cancel-subscription-title">
+            <div className="plan-confirm-modal">
+              <h2 id="cancel-subscription-title">Are you sure you want to cancel subscription?</h2>
+              <p>This will cancel the subscription and this company account will not be able to log back in.</p>
+              <div className="plan-confirm-actions">
+                <button type="button" className="billing-cancel-confirm-btn" onClick={handleCancelSubscription}>
+                  Yes
+                </button>
+                <button type="button" onClick={() => setShowCancelConfirm(false)}>
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     )}
 {activeCompanyTab === "password" && (
   <div className="modern-form-page">

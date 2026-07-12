@@ -1359,6 +1359,129 @@ textarea {
   margin-top: 10px;
 }
 
+.billing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.billing-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.billing-detail-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f8fafc;
+}
+
+.billing-detail-item span {
+  display: block;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.billing-detail-item strong {
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.billing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.billing-empty-message {
+  margin: 0;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.billing-invoice-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.billing-invoice-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1.2fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.billing-invoice-row:first-child {
+  border-top: 0;
+}
+
+.billing-invoice-row--header {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.billing-invoice-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.billing-invoice-links a {
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.billing-cancel-btn,
+.billing-cancel-confirm-btn {
+  border: 0;
+  border-radius: 8px;
+  background: #dc2626;
+  color: #ffffff;
+  font-weight: 800;
+  padding: 12px 18px;
+  cursor: pointer;
+}
+
+.billing-cancel-btn:hover,
+.billing-cancel-confirm-btn:hover {
+  background: #b91c1c;
+}
+
+.plan-confirm-actions .billing-cancel-confirm-btn,
+.plan-confirm-actions .billing-cancel-confirm-btn:first-child {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.plan-confirm-actions .billing-cancel-confirm-btn:hover,
+.plan-confirm-actions .billing-cancel-confirm-btn:first-child:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+@media (max-width: 900px) {
+  .billing-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .billing-invoice-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .workspace-pto-list {
   max-height: 620px;
   padding-right: 10px;

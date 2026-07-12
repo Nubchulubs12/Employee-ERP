@@ -3,6 +3,9 @@ package com.example.erp.services;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -15,22 +18,42 @@ import java.util.Map;
 
 @Service
 public class EmailService {
+    private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
     private final String mailFrom;
     private final String displayName;
     private final String resendApiKey;
+    private final String smtpUsername;
+    private final String smtpPassword;
     private final RestClient restClient;
 
     public EmailService(JavaMailSender mailSender,
                         @Value("${app.mail.from}") String mailFrom,
                         @Value("${app.mail.display-name}") String displayName,
-                        @Value("${app.mail.resend-api-key:}") String resendApiKey) {
+                        @Value("${app.mail.resend-api-key:}") String resendApiKey,
+                        @Value("${spring.mail.username:}") String smtpUsername,
+                        @Value("${spring.mail.password:}") String smtpPassword) {
         this.mailSender = mailSender;
         this.mailFrom = mailFrom;
         this.displayName = displayName;
         this.resendApiKey = resendApiKey;
+        this.smtpUsername = smtpUsername;
+        this.smtpPassword = smtpPassword;
         this.restClient = RestClient.create("https://api.resend.com");
+    }
+
+    @PostConstruct
+    void logMailConfiguration() {
+        if (resendApiKey != null && !resendApiKey.isBlank()) {
+            logger.info("Email configured to use Resend with from address {}", mailFrom);
+            return;
+        }
+
+        logger.info("Email configured to use SMTP with from address {}; username set: {}; password set: {}",
+                mailFrom,
+                smtpUsername != null && !smtpUsername.isBlank(),
+                smtpPassword != null && !smtpPassword.isBlank());
     }
 
     public void sendPasswordResetCode(String to, String code) {
@@ -77,6 +100,18 @@ public class EmailService {
         sendEmail(to, "ESS Portal subscription canceled", body);
     }
 
+    public void sendSubscriptionPlanChanged(String to, String action, String planName, String monthlyAmount) {
+        String body = "Thank you for using ESS Portal and for deciding to "
+                + action
+                + " to "
+                + planName
+                + " and your new monthly subscription is "
+                + monthlyAmount
+                + ".";
+
+        sendEmail(to, "ESS Portal subscription plan updated", body);
+    }
+
     public void sendEmail(String to, String subject, String body) {
         if (resendApiKey != null && !resendApiKey.isBlank()) {
             sendWithResend(to, subject, body);
@@ -90,6 +125,7 @@ public class EmailService {
         String from = displayName + " <" + mailFrom + ">";
 
         try {
+            logger.info("Sending email through Resend to {} with subject {}", to, subject);
             restClient.post()
                     .uri("/emails")
                     .header("Authorization", "Bearer " + resendApiKey)
@@ -102,13 +138,16 @@ public class EmailService {
                     ))
                     .retrieve()
                     .toBodilessEntity();
+            logger.info("Email sent through Resend to {} with subject {}", to, subject);
         } catch (RuntimeException ex) {
-            throw new RuntimeException("Unable to send password reset email.", ex);
+            logger.warn("Unable to send email through Resend to {} with subject {}", to, subject, ex);
+            throw new RuntimeException("Unable to send email through Resend.", ex);
         }
     }
 
     private void sendWithSmtp(String to, String subject, String body) {
         try {
+            logger.info("Sending email through SMTP to {} with subject {}", to, subject);
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
             helper.setFrom(new InternetAddress(mailFrom, displayName));
@@ -116,8 +155,10 @@ public class EmailService {
             helper.setSubject(subject);
             helper.setText(body, false);
             mailSender.send(message);
+            logger.info("Email sent through SMTP to {} with subject {}", to, subject);
         } catch (MessagingException | UnsupportedEncodingException ex) {
-            throw new RuntimeException("Unable to send password reset email.");
+            logger.warn("Unable to send email through SMTP to {} with subject {}", to, subject, ex);
+            throw new RuntimeException("Unable to send email through SMTP.", ex);
         }
     }
 }

@@ -13,6 +13,8 @@ import java.util.Optional;
 
 @Service
 public class AuthService {
+    private static final String CANCELED_LOGIN_MESSAGE =
+            "This subscription has been canceled. Please register again to access ESS Portal.";
 
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
@@ -36,6 +38,10 @@ public class AuthService {
                 throw new IllegalArgumentException("Invalid email or password.");
             }
 
+            if ("CANCELED".equalsIgnoreCase(company.getBillingStatus())) {
+                throw new IllegalArgumentException(CANCELED_LOGIN_MESSAGE);
+            }
+
             return new LoginResponse(
                     "company",
                     company.getId(),
@@ -53,6 +59,10 @@ public class AuthService {
 
             if (!passwordEncoder.matches(request.getPassword(), employee.getPwHash())) {
                 throw new IllegalArgumentException("Invalid email or password.");
+            }
+
+            if ("CANCELED".equalsIgnoreCase(employee.getCompany().getBillingStatus())) {
+                throw new IllegalArgumentException(CANCELED_LOGIN_MESSAGE);
             }
 
             return new LoginResponse(

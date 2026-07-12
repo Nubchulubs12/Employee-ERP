@@ -150,6 +150,14 @@ function Pricing() {
     try {
       if (selectedPlan.code !== "TRIAL" && !isInternalAccount(company)) {
         const session = await startStripeBillingSession(upgradeCompanyId, selectedPlan.code);
+        if (session.url?.includes(`/companies/${upgradeCompanyId}`)) {
+          setSelectedPlan(null);
+          setMessage(`${selectedPlan.name} will be used for future subscription billing.`);
+          const refreshedCompany = await fetchCompanyById(upgradeCompanyId);
+          setCompany(refreshedCompany);
+          updateStoredCompany(refreshedCompany);
+          return;
+        }
         window.location.href = session.url;
         return;
       }
