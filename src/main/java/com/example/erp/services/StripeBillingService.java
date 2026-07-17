@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Instant;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
@@ -242,6 +243,7 @@ public class StripeBillingService {
         company.setPlanCode(plan.getCode());
         company.setPlanStartedOn(LocalDate.now());
         company.setBillingStatus("ACTIVE");
+        company.setSubscriptionCanceledAt(null);
         company.setStripeSubscriptionStatus("active");
         company.setStripeCustomerId(session.getCustomer());
         company.setStripeSubscriptionId(session.getSubscription());
@@ -266,8 +268,15 @@ public class StripeBillingService {
         }
 
         String status = subscription.getStatus();
+        if ("canceled".equalsIgnoreCase(status)) {
+            applyCanceledSubscription(company, subscription, false);
+            return;
+        }
         company.setStripeSubscriptionStatus(status);
         company.setBillingStatus(toBillingStatus(status));
+        if ("ACTIVE".equalsIgnoreCase(company.getBillingStatus())) {
+            company.setSubscriptionCanceledAt(null);
+        }
         company.setStripeCurrentPeriodEnd(getCurrentPeriodEnd(subscription));
 
         String priceId = getSubscriptionPriceId(subscription);
@@ -470,6 +479,9 @@ public class StripeBillingService {
 
         company.setStripeSubscriptionStatus(subscription.getStatus());
         company.setBillingStatus("CANCELED");
+        if (company.getSubscriptionCanceledAt() == null) {
+            company.setSubscriptionCanceledAt(Instant.now());
+        }
         companyRepository.save(company);
 
         if (sendEmailImmediately || !alreadyCanceled) {

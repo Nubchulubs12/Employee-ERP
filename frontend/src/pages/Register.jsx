@@ -44,6 +44,8 @@ function Register() {
     state: "",
     zip: "",
     country: "United States",
+    termsAccepted: false,
+    privacyAccepted: false,
   });
 
   const [message, setMessage] = useState("");
@@ -51,14 +53,18 @@ function Register() {
   const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setMessage("");
+    if (!formData.termsAccepted || !formData.privacyAccepted) {
+      setError("You must agree to the Terms of Service and Privacy Policy before registering.");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -164,6 +170,14 @@ function Register() {
               <input type="text" name="country" value={formData.country} onChange={handleChange} placeholder="United States" />
             </label>
           </div>
+
+          <label className="legal-consent">
+            <input type="checkbox" checked={formData.termsAccepted && formData.privacyAccepted} onChange={(event) => setFormData((prev) => ({ ...prev, termsAccepted: event.target.checked, privacyAccepted: event.target.checked }))} />
+            <span>I have read and agree to the <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>.</span>
+          </label>
+          {formData.planCode !== "TRIAL" && (
+            <p className="subscription-notice">Monthly subscription. Cancel anytime. By subscribing, you agree to the <Link to="/terms">Terms of Service</Link> and <Link to="/subscription-terms">Subscription Terms</Link>.</p>
+          )}
 
           <button type="submit" disabled={loading}>
             {loading ? "Registering..." : "Register"}

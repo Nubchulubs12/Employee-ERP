@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -25,6 +26,8 @@ public class CompanyService {
     private static final String OWNER_EMAIL = "ncodedsystems@gmail.com";
     private static final String OWNER_COMPANY_NAME = "Ncoded Systems";
     private static final int TRIAL_DAYS = 30;
+    private static final String TERMS_VERSION = "2026-07-16";
+    private static final String PRIVACY_VERSION = "2026-07-16";
 
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
@@ -50,6 +53,10 @@ public class CompanyService {
 
     public CompanyDto createCompany(CreateCompanyRequest request) {
 
+        if (!Boolean.TRUE.equals(request.getTermsAccepted()) || !Boolean.TRUE.equals(request.getPrivacyAccepted())) {
+            throw new IllegalArgumentException("You must accept the Terms of Service and Privacy Policy before registering.");
+        }
+
         if (companyRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email is already in use by a company account.");
         }
@@ -73,6 +80,11 @@ public class CompanyService {
         company.setZip(request.getZip());
         company.setCountry(request.getCountry());
         applyInternalBillingStatus(company);
+        Instant acceptedAt = Instant.now();
+        company.setTermsAcceptedAt(acceptedAt);
+        company.setPrivacyAcceptedAt(acceptedAt);
+        company.setAcceptedTermsVersion(TERMS_VERSION);
+        company.setAcceptedPrivacyVersion(PRIVACY_VERSION);
 
         Company savedCompany = companyRepository.save(company);
         sendWelcomeEmail(savedCompany, requestedPlan);

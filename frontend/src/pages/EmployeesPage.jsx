@@ -14,6 +14,7 @@ import {
 import { fetchCompanyById } from "../api/companyApi";
 import { fetchEmployeeCommissions } from "../api/commissionApi";
 import DocumentsPanel from "../components/DocumentsPanel";
+import LegalLinks from "../components/LegalLinks";
 
 const US_STATES = [
   "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
@@ -1127,6 +1128,13 @@ function EmployeesPage() {
           >
             Documents
           </button>
+          <button
+            type="button"
+            className={`employee-tab${activeTab === "legal" ? " employee-tab--active" : ""}`}
+            onClick={() => handleTabChange("legal")}
+          >
+            Legal
+          </button>
         </div>
       </div>
 
@@ -1904,6 +1912,12 @@ function EmployeesPage() {
             employeePayType={employee.payType}
             canUpload={false}
           />
+        )}
+        {activeTab === "legal" && (
+          <div className="employee-modern-page">
+            <div className="modern-settings-hero"><div><h1>Legal and Support</h1><p>Privacy, payroll information, and contact options.</p></div><div className="hero-art">§</div></div>
+            <div className="modern-card"><LegalLinks employee className="legal-links-panel" /></div>
+          </div>
         )}
       </div>
     </div>

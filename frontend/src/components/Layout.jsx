@@ -1,11 +1,16 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
+import PublicFooter from "./PublicFooter";
 
 function Layout() {
+  const { pathname } = useLocation();
+  const isPortal = pathname.startsWith("/companies/") || pathname.startsWith("/employees/");
+  const ownsFooter = ["/terms", "/privacy", "/subscription-terms", "/data-retention", "/payroll-disclaimer", "/contact"].includes(pathname);
   return (
-    <div>
+    <div className="app-shell">
       <Navbar />
-      <Outlet />
+      <div className="app-content"><Outlet /></div>
+      {!isPortal && !ownsFooter && <PublicFooter />}
     </div>
   );
 }

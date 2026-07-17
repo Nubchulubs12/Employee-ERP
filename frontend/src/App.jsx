@@ -6,6 +6,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import Register from './pages/Register';
 import Pricing from './pages/Pricing.jsx';
 import Layout from './components/Layout';
+import LegalPage from './pages/LegalPage';
+import Contact from './pages/Contact';
 import {createBrowserRouter,RouterProvider,} from 'react-router-dom'
 
 const router = createBrowserRouter([
@@ -44,6 +46,12 @@ const router = createBrowserRouter([
         path: '/pricing',
         element: <Pricing />,
       },
+      { path: '/terms', element: <LegalPage document="terms" /> },
+      { path: '/privacy', element: <LegalPage document="privacy" /> },
+      { path: '/subscription-terms', element: <LegalPage document="subscription" /> },
+      { path: '/data-retention', element: <LegalPage document="retention" /> },
+      { path: '/payroll-disclaimer', element: <LegalPage document="payroll" /> },
+      { path: '/contact', element: <Contact /> },
     ],
   },
 ]);

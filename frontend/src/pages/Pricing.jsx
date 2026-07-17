@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchCompanyById, startStripeBillingSession, updateCompanyPlan } from "../api/companyApi";
 import "../App.css";
 
@@ -23,6 +23,7 @@ const plans = [
   {
     code: "SMALL",
     name: "Small",
+    price: "$39.00 USD",
     range: "Up to 25 employees",
     description: "Built for lean teams getting payroll and HR organized.",
     action: "Choose Small",
@@ -39,6 +40,7 @@ const plans = [
   {
     code: "GROWING",
     name: "Growing",
+    price: "$59.00 USD",
     range: "Up to 100 employees",
     description: "More room for growing companies with the same simple workflow.",
     action: "Choose Growing",
@@ -226,7 +228,8 @@ function Pricing() {
 
               <div className="pricing-card-header">
                 <h2>{plan.name}</h2>
-                <strong>{plan.range}</strong>
+                <strong>{plan.price || plan.range}</strong>
+                {plan.price && <span className="pricing-plan-range">{plan.range}</span>}
                 <p>{plan.description}</p>
               </div>
 
@@ -240,6 +243,7 @@ function Pricing() {
               </ul>
 
               {!hideAction && (
+                <>
                 <button
                   type="button"
                   disabled={isCurrentPlan || saving}
@@ -248,6 +252,8 @@ function Pricing() {
                 >
                   {isCurrentPlan ? "Current plan" : isUpgradeMode ? isInternalAccount(company) ? `Switch to ${plan.name}` : getUpgradeActionLabel(company, plan) : plan.action}
                 </button>
+                {plan.code !== "TRIAL" && <p className="subscription-notice">Monthly subscription. Cancel anytime. By subscribing, you agree to the <Link to="/terms">Terms of Service</Link> and <Link to="/subscription-terms">Subscription Terms</Link>.</p>}
+                </>
               )}
             </article>
           );
@@ -261,6 +267,7 @@ function Pricing() {
             <p>
               This will update {company?.name || "your company"} to the {selectedPlan.name} plan.
             </p>
+            {selectedPlan.code !== "TRIAL" && <p className="subscription-notice">Monthly subscription. Cancel anytime. By subscribing, you agree to the <Link to="/terms">Terms of Service</Link> and <Link to="/subscription-terms">Subscription Terms</Link>.</p>}
             <div className="plan-confirm-actions">
               <button type="button" onClick={handleConfirmUpgrade} disabled={saving}>
                 {saving ? "Updating..." : "Yes"}

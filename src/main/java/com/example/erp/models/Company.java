@@ -3,6 +3,7 @@ package com.example.erp.models;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
+import java.time.Instant;
 
 @Entity
 @Table(name = "companies")
@@ -73,9 +74,25 @@ public class Company {
 
     @Column
     private LocalDate freeTrialExpirationEmailSentOn;
+    private Instant termsAcceptedAt;
+    private Instant privacyAcceptedAt;
+    private String acceptedTermsVersion;
+    private String acceptedPrivacyVersion;
+    private Instant subscriptionCanceledAt;
 
     public Company() {
     }
+
+    public Instant getTermsAcceptedAt() { return termsAcceptedAt; }
+    public void setTermsAcceptedAt(Instant termsAcceptedAt) { this.termsAcceptedAt = termsAcceptedAt; }
+    public Instant getPrivacyAcceptedAt() { return privacyAcceptedAt; }
+    public void setPrivacyAcceptedAt(Instant privacyAcceptedAt) { this.privacyAcceptedAt = privacyAcceptedAt; }
+    public String getAcceptedTermsVersion() { return acceptedTermsVersion; }
+    public void setAcceptedTermsVersion(String acceptedTermsVersion) { this.acceptedTermsVersion = acceptedTermsVersion; }
+    public String getAcceptedPrivacyVersion() { return acceptedPrivacyVersion; }
+    public void setAcceptedPrivacyVersion(String acceptedPrivacyVersion) { this.acceptedPrivacyVersion = acceptedPrivacyVersion; }
+    public Instant getSubscriptionCanceledAt() { return subscriptionCanceledAt; }
+    public void setSubscriptionCanceledAt(Instant subscriptionCanceledAt) { this.subscriptionCanceledAt = subscriptionCanceledAt; }
 
     public String getPayrollType() {
         return payrollType;

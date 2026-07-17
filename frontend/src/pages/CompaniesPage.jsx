@@ -27,6 +27,7 @@ import DocumentsPanel from '../components/DocumentsPanel';
 import PayrollPanel from '../components/PayrollPanel';
 import CommissionPanel from '../components/CommissionPanel';
 import { fetchEmployeeCommissions } from '../api/commissionApi';
+import LegalLinks from '../components/LegalLinks';
 
 const MAX_EMPLOYEES_MESSAGE = "you have reached the max number off employees this plan is allowed, upgrade to add more employees.";
 const GROWING_MAX_EMPLOYEES_MESSAGE = "You have reached the maximum limit of this plan";
@@ -2075,6 +2076,7 @@ function CompaniesPage() {
                 </div>
               </form>
             </div>
+
           </div>
         )}
 
@@ -2380,6 +2382,14 @@ function CompaniesPage() {
                   </>
                 );
               })()}
+            </div>
+
+            <div className="modern-card">
+              <div className="modern-card-header">
+                <div className="modern-icon blue">§</div>
+                <div><h2>Legal</h2><p>Review policies, billing terms, and support information.</p></div>
+              </div>
+              <LegalLinks className="legal-links-panel" />
             </div>
           </div>
         )}

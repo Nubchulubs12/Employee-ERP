@@ -4264,6 +4264,14 @@ summary:focus-visible {
   line-height: 1.05;
 }
 
+.pricing-plan-range {
+  display: block;
+  margin-top: 8px;
+  color: var(--ess-muted);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
 .pricing-card-header p {
   margin: 14px 0 0;
   min-height: 48px;
@@ -4459,3 +4467,39 @@ summary:focus-visible {
     margin-bottom: 16px;
   }
 }
+/* Shared public legal navigation and documents */
+.app-shell, .public-page-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.app-content, .legal-page { flex: 1; }
+.public-footer { background: #172033; color: #eef3fb; padding: 24px clamp(18px, 5vw, 64px); text-align: center; }
+.public-footer .legal-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px; margin-bottom: 14px; }
+.public-footer a { color: #dce8ff; text-decoration: none; }
+.public-footer a:hover, .legal-links-panel a:hover { text-decoration: underline; }
+.public-footer p { margin: 0; }
+.legal-page {
+  background:
+    linear-gradient(135deg, rgba(11, 31, 58, 0.95), rgba(18, 52, 91, 0.9)),
+    url("./assets/hero.png") center / cover fixed;
+  padding: 76px 22px 88px;
+}
+.legal-content {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 52px);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(217, 226, 236, 0.9);
+  border-radius: 8px;
+  box-shadow: var(--ess-shadow-md);
+  backdrop-filter: blur(12px);
+  color: var(--ess-ink);
+  line-height: 1.7;
+}
+.legal-content h1 { margin-top: 0; color: var(--ess-navy); letter-spacing: 0; }
+.legal-content h2 { margin: 30px 0 8px; font-size: 1.25rem; color: var(--ess-navy); letter-spacing: 0; }
+.legal-content p { color: var(--ess-muted); }
+.legal-updated { color: var(--ess-muted); }
+.legal-placeholder-notice { border-left: 4px solid #d59624; background: #fff8e8; padding: 14px 16px; font-weight: 600; }
+.legal-consent { display: flex !important; flex-direction: row !important; align-items: flex-start; gap: 10px; line-height: 1.45; }
+.legal-consent input { width: 18px !important; height: 18px; margin-top: 2px; flex: 0 0 auto; }
+.subscription-notice { margin: 12px 0 0; font-size: .84rem; line-height: 1.45; color: #657087; }
+.legal-links-panel { display: grid; gap: 10px; }
+@media (max-width: 600px) { .legal-page { padding: 34px 14px 48px; } .legal-content { padding: 24px 20px; } .public-footer .legal-links { flex-direction: column; } }

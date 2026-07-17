@@ -2,6 +2,7 @@ package com.example.erp.Dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.AssertTrue;
 
 public class CreateCompanyRequest {
 
@@ -25,6 +26,10 @@ public class CreateCompanyRequest {
     private String zip;
     private String country;
     private String planCode;
+    @AssertTrue(message = "You must accept the Terms of Service.")
+    private Boolean termsAccepted;
+    @AssertTrue(message = "You must accept the Privacy Policy.")
+    private Boolean privacyAccepted;
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -61,4 +66,8 @@ public class CreateCompanyRequest {
 
     public String getPlanCode() { return planCode; }
     public void setPlanCode(String planCode) { this.planCode = planCode; }
+    public Boolean getTermsAccepted() { return termsAccepted; }
+    public void setTermsAccepted(Boolean termsAccepted) { this.termsAccepted = termsAccepted; }
+    public Boolean getPrivacyAccepted() { return privacyAccepted; }
+    public void setPrivacyAccepted(Boolean privacyAccepted) { this.privacyAccepted = privacyAccepted; }
 }

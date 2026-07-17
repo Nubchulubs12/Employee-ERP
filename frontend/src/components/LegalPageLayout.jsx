@@ -1,0 +1,2 @@
+import PublicFooter from "./PublicFooter";
+export default function LegalPageLayout({ title, document }) { return <div className="public-page-shell"><main className="legal-page"><article className="legal-content"><h1>{title}</h1><p className="legal-updated">Last updated: July 16, 2026</p>{document.notice && <p className="legal-placeholder-notice">{document.notice}</p>}{document.sections.map(([heading,text]) => <section key={heading}><h2>{heading}</h2><p>{text}</p></section>)}</article></main><PublicFooter /></div>; }
