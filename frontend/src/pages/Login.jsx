@@ -9,9 +9,7 @@ function Login({ defaultType = "employee" }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/health`).catch(() => {});
-  }, []);
+
 
   useEffect(() => {
     const raw = localStorage.getItem("user");
